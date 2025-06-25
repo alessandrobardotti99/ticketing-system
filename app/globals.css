@@ -1,0 +1,294 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 0 0% 100%;
+    --foreground: 240 10% 3.9%;
+    --card: 0 0% 100%;
+    --card-foreground: 240 10% 3.9%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 240 10% 3.9%;
+    --primary: 0 0% 7.1%; /* #121212 */
+    --primary-foreground: 0 0% 98%;
+    --secondary: 240 4.8% 95.9%;
+    --secondary-foreground: 240 5.9% 10%;
+    --muted: 240 4.8% 95.9%;
+    --muted-foreground: 240 3.8% 46.1%;
+    --accent: 240 4.8% 95.9%;
+    --accent-foreground: 240 5.9% 10%;
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 240 5.9% 90%;
+    --input: 240 5.9% 90%;
+    --ring: 240 5.9% 10%;
+    --radius: 0;
+  }
+
+  .dark {
+    --background: 0 0% 12%;
+    --foreground: 0 0% 98%;
+    --card: 0 0% 15%;
+    --card-foreground: 0 0% 98%;
+    --popover: 0 0% 15%;
+    --popover-foreground: 0 0% 98%;
+    --primary: 0 0% 98%;
+    --primary-foreground: 0 0% 12%;
+    --secondary: 0 0% 20%;
+    --secondary-foreground: 0 0% 98%;
+    --muted: 0 0% 20%;
+    --muted-foreground: 0 0% 64.9%;
+    --accent: 0 0% 20%;
+    --accent-foreground: 0 0% 98%;
+    --destructive: 0 62.8% 50%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 0 0% 25%;
+    --input: 0 0% 25%;
+    --ring: 0 0% 83.9%;
+  }
+
+  * {
+    @apply border-border;
+    border-radius: 0 !important;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+    font-feature-settings: "rlig" 1, "calt" 1;
+  }
+}
+
+@layer components {
+  .btn-primary {
+    @apply bg-primary text-primary-foreground px-4 py-2 font-medium hover:bg-primary/90 transition-colors shadow-sm;
+    border-radius: 0 !important;
+  }
+
+  .btn-secondary {
+    @apply bg-secondary text-secondary-foreground px-4 py-2 font-medium border border-input hover:bg-accent hover:text-accent-foreground transition-colors shadow-sm;
+    border-radius: 0 !important;
+  }
+
+  .btn-danger {
+    @apply bg-destructive text-destructive-foreground px-4 py-2 font-medium hover:bg-destructive/90 transition-colors shadow-sm;
+    border-radius: 0 !important;
+  }
+
+  .card {
+    @apply bg-card text-card-foreground border border-border shadow-sm p-6;
+    border-radius: 0 !important;
+  }
+
+  .card-header {
+    @apply bg-muted/50 border-b border-border px-6 py-4 -m-6 mb-6;
+    border-radius: 0 !important;
+  }
+
+  .input {
+    @apply w-full px-3 py-2 border border-input bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent transition-colors;
+    border-radius: 0 !important;
+  }
+
+  .select {
+    @apply w-full px-3 py-2 border border-input bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-ring transition-colors;
+    border-radius: 0 !important;
+  }
+
+  .badge {
+    @apply inline-flex items-center px-2.5 py-0.5 text-xs font-medium;
+    border-radius: 0 !important;
+  }
+
+  .badge-primary {
+    @apply badge bg-primary/10 text-primary;
+  }
+
+  .badge-success {
+    @apply badge bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400;
+  }
+
+  .badge-warning {
+    @apply badge bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-400;
+  }
+
+  .badge-danger {
+    @apply badge bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-400;
+  }
+
+  .badge-info {
+    @apply badge bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-400;
+  }
+}
+
+/* Font personalizzati */
+@import url("https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&display=swap");
+
+/* Applicazione font ai titoli */
+h1,
+h2,
+h3,
+h4,
+h5,
+h6,
+.heading {
+  font-family: "Space Grotesk", Arial, sans-serif;
+  font-weight: 600;
+}
+
+/* Applicazione font al testo normale */
+body,
+p,
+span,
+div,
+button,
+input,
+textarea,
+select,
+label,
+.text {
+  font-family: "Space Grotesk", Tahoma, sans-serif;
+}
+
+/* Override specifici per componenti */
+.btn-primary,
+.btn-secondary,
+.btn-danger {
+  font-family: "Space Grotesk", Tahoma, sans-serif;
+}
+
+/* Card headers e titoli */
+.card-header h1,
+.card-header h2,
+.card-header h3 {
+  font-family: "Space Grotesk", Arial, sans-serif;
+}
+
+/* Custom scrollbar styles */
+.scrollbar-thin {
+  scrollbar-width: thin;
+}
+
+.scrollbar-thumb-muted {
+  scrollbar-color: hsl(var(--muted-foreground)) transparent;
+}
+
+.scrollbar-track-transparent {
+  scrollbar-color: hsl(var(--muted-foreground)) transparent;
+}
+
+/* Webkit scrollbar styles */
+.scrollbar-thin::-webkit-scrollbar {
+  height: 8px;
+  width: 8px;
+}
+
+.scrollbar-thin::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.scrollbar-thin::-webkit-scrollbar-thumb {
+  background-color: hsl(var(--muted-foreground));
+  border-radius: 4px;
+}
+
+.scrollbar-thin::-webkit-scrollbar-thumb:hover {
+  background-color: hsl(var(--foreground));
+}
+
+/* Animazioni per Radix UI */
+@keyframes slideDownAndFade {
+  from {
+    opacity: 0;
+    transform: translateY(-2px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes slideLeftAndFade {
+  from {
+    opacity: 0;
+    transform: translateX(2px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes slideUpAndFade {
+  from {
+    opacity: 0;
+    transform: translateY(2px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes slideRightAndFade {
+  from {
+    opacity: 0;
+    transform: translateX(-2px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+[data-side="top"] {
+  animation: slideDownAndFade 400ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+[data-side="right"] {
+  animation: slideLeftAndFade 400ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+[data-side="bottom"] {
+  animation: slideUpAndFade 400ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+[data-side="left"] {
+  animation: slideRightAndFade 400ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* Override per tutti gli elementi Radix */
+[data-radix-popper-content-wrapper] {
+  border-radius: 0 !important;
+}
+
+[data-radix-popper-content-wrapper] > * {
+  border-radius: 0 !important;
+}
+
+/* Tabelle dark mode */
+table {
+  @apply bg-card;
+}
+
+thead {
+  @apply bg-muted/50;
+}
+
+tbody tr {
+  @apply bg-card hover:bg-muted/30;
+}
+
+/* Select dropdown dark mode */
+[data-radix-select-content] {
+  @apply bg-popover border-border;
+}
+
+[data-radix-select-item] {
+  @apply text-popover-foreground;
+}
+
+/* Sheet dark mode */
+[data-radix-dialog-content] {
+  @apply bg-card text-card-foreground;
+}
