@@ -7,6 +7,7 @@ import { hasPermission } from "@/db/schema"
 import { LayoutDashboard, Ticket, Users, Settings, Clock, FolderOpen, Lock, Loader2 } from "lucide-react"
 import { motion } from "framer-motion"
 import { UserInfo } from "./user-info"
+import Image from "next/image"
 
 export function Sidebar() {
   const pathname = usePathname()
@@ -82,6 +83,9 @@ export function Sidebar() {
       transition={{ duration: 0.2 }}
       className="w-[17rem] bg-card border-r border-border min-h-screen shadow-sm flex flex-col"
     >
+       <div className="flex items-center justify-start px-4 mt-4 pb-4 border-b border-neutral-200">
+                              <Image src={"/logo.svg"} alt="logo" width={150} height={150}></Image>
+                          </div>
       <nav className="p-4 space-y-1 flex-1">
         {navigation.map((item, index) => {
           const isActive = isActiveRoute(item.href)
@@ -112,6 +116,7 @@ export function Sidebar() {
               transition={{ duration: 0.1, delay: index * 0.02 }}
               className="relative"
             >
+              
               <Link
                 href={item.href}
                 className={`flex items-center gap-3 px-3 py-2 text-sm font-medium transition-colors duration-150 relative rounded-md ${
