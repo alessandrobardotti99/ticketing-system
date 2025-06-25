@@ -18,7 +18,7 @@ export function KanbanColumn({ id, title, color, tickets }: KanbanColumnProps) {
   return (
     <div
       ref={setNodeRef}
-      className={`bg-muted/30 rounded-lg p-4 min-h-[500px] transition-colors border ${
+      className={`bg-white rounded-lg p-4 min-h-[500px] transition-colors border ${
         isOver ? "bg-muted/50 ring-2 ring-primary/20" : ""
       }`}
     >

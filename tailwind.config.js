@@ -13,6 +13,7 @@ module.exports = {
     ...defaultConfig.theme,
     extend: {
       colors: {
+        bgprimary: "rgb(244, 234, 224)",
         border: "hsl(var(--border))",
         input: "hsl(var(--input))",
         ring: "hsl(var(--ring))",

@@ -177,7 +177,7 @@ export default function HomePage() {
   ]
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background to-muted/20">
+    <div className="min-h-screen bg-bgprimary/50">
       {/* Header */}
       <header className="border-b bg-card/95 backdrop-blur supports-[backdrop-filter]:bg-card/60 sticky top-0 z-50">
         <div className="container mx-auto px-4 py-4">
@@ -290,7 +290,7 @@ export default function HomePage() {
               transition={{ duration: 0.6, delay: index * 0.1 }}
               viewport={{ once: true }}
             >
-              <Card className="h-full hover:shadow-lg transition-all duration-300 hover:-translate-y-1 p-6">
+              <Card className="h-full hover:shadow-lg transition-all duration-300 hover:-translate-y-1 p-6 border">
                 <div className="flex items-start gap-4">
                   <div className="w-16 h-16 bg-primary/10 rounded-xl flex items-center justify-center flex-shrink-0">
                     <div className="text-primary">{feature.icon}</div>

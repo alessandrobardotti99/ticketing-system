@@ -13,7 +13,7 @@ export function Header() {
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       transition={{ duration: 0.2 }}
-      className="bg-card border-b border-border px-6 py-4 shadow-sm"
+      className="bg-card border-b border-border px-6 py-4 shadow-none"
     >
       <div className="flex justify-between items-center">
         <div className="flex items-center gap-4">

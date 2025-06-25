@@ -2,9 +2,9 @@
 
 import type React from "react"
 import { useState } from "react"
-import { useAuth } from "@/components/auth-provider"
 import { useRouter } from "next/navigation"
-import { User, Lock, Mail, UserPlus, Building } from "lucide-react"
+import { User, Lock, Mail, UserPlus } from "lucide-react"
+import { signUp } from "@/server/users"
 
 export default function RegisterPage() {
   const [formData, setFormData] = useState({
@@ -16,7 +16,6 @@ export default function RegisterPage() {
   })
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState("")
-  const { register } = useAuth()
   const router = useRouter()
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -45,17 +44,31 @@ export default function RegisterPage() {
       return
     }
 
-    const success = await register(formData.name, formData.email, formData.password, formData.company)
-    if (success) {
-      router.push("/dashboard")
-    } else {
+    try {
+      // Usa signUp per la registrazione
+     const result = await signUp(
+  formData.name,
+  formData.email,
+  formData.password
+)
+
+      if (result.success) {
+        // Reindirizza alla dashboard dopo registrazione riuscita
+        router.push("/dashboard")
+      } else {
+        setError(result.message || "Errore durante la registrazione. Riprova.")
+        console.log(result.message)
+      }
+    } catch (error) {
+      console.error("Errore registrazione:", error)
       setError("Errore durante la registrazione. Riprova.")
     }
+    
     setIsLoading(false)
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-neutral-100">
+    <div className="min-h-screen flex items-center justify-center bg-bgprimary/50">
       <div className="w-full max-w-md">
         <div className="card">
           <div className="card-header">
@@ -101,20 +114,6 @@ export default function RegisterPage() {
               />
             </div>
 
-            <div>
-              <label className="block text-sm font-medium mb-2">
-                <Building className="w-4 h-4 inline mr-2" />
-                Azienda (Opzionale)
-              </label>
-              <input
-                type="text"
-                name="company"
-                value={formData.company}
-                onChange={handleChange}
-                className="input"
-                placeholder="Nome della tua azienda"
-              />
-            </div>
 
             <div>
               <label className="block text-sm font-medium mb-2">
