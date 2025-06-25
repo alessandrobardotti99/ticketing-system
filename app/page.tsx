@@ -137,7 +137,7 @@ export default function HomePage() {
     {
       question: "È davvero completamente gratuito?",
       answer:
-        "Sì! TicketFlow è 100% gratuito, senza limiti di utenti, ticket o funzionalità. Non ci sono costi nascosti o piani premium.",
+        "Sì! Index è 100% gratuito, senza limiti di utenti, ticket o funzionalità. Non ci sono costi nascosti o piani premium.",
     },
     {
       question: "Ci sono limiti sul numero di ticket o utenti?",
@@ -147,12 +147,12 @@ export default function HomePage() {
     {
       question: "Come fate a mantenerlo gratuito?",
       answer:
-        "TicketFlow è un progetto open source sostenuto dalla community. Crediamo che gli strumenti di produttività dovrebbero essere accessibili a tutti.",
+        "Index è un progetto open source sostenuto dalla community. Crediamo che gli strumenti di produttività dovrebbero essere accessibili a tutti.",
     },
     {
       question: "Posso usarlo per la mia azienda?",
       answer:
-        "Assolutamente sì! TicketFlow è perfetto sia per piccole startup che per grandi aziende. Scala automaticamente con le tue esigenze.",
+        "Assolutamente sì! Index è perfetto sia per piccole startup che per grandi aziende. Scala automaticamente con le tue esigenze.",
     },
     {
       question: "I miei dati sono sicuri?",
@@ -187,7 +187,7 @@ export default function HomePage() {
                 <span className="text-primary-foreground font-bold text-sm">TF</span>
               </div>
               <div>
-                <h1 className="text-xl font-bold">TicketFlow</h1>
+                <h1 className="text-xl font-bold">Index</h1>
                 <p className="text-xs text-muted-foreground">100% Gratuito • Open Source</p>
               </div>
             </div>
@@ -316,7 +316,7 @@ export default function HomePage() {
             viewport={{ once: true }}
             className="text-center mb-16"
           >
-            <h2 className="text-3xl md:text-4xl font-bold mb-4">Perché scegliere TicketFlow?</h2>
+            <h2 className="text-3xl md:text-4xl font-bold mb-4">Perché scegliere Index?</h2>
             <p className="text-xl text-muted-foreground max-w-2xl mx-auto">I vantaggi che fanno la differenza</p>
           </motion.div>
 
@@ -417,7 +417,7 @@ export default function HomePage() {
           >
             <h2 className="text-3xl md:text-4xl font-bold mb-4">Domande Frequenti</h2>
             <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-              Tutto quello che devi sapere su TicketFlow
+              Tutto quello che devi sapere su Index
             </p>
           </motion.div>
 
@@ -471,7 +471,7 @@ export default function HomePage() {
                 <div className="w-8 h-8 bg-primary flex items-center justify-center rounded">
                   <span className="text-primary-foreground font-bold text-sm">TF</span>
                 </div>
-                <span className="font-bold text-xl">TicketFlow</span>
+                <span className="font-bold text-xl">Index</span>
               </div>
               <p className="text-muted-foreground">
                 Il sistema di ticketing completamente gratuito che trasforma il modo di gestire il supporto.
@@ -564,7 +564,7 @@ export default function HomePage() {
           </div>
 
           <div className="border-t mt-8 pt-8 flex flex-col md:flex-row justify-between items-center">
-            <p className="text-sm text-muted-foreground">© 2024 TicketFlow. Open Source • Completamente Gratuito</p>
+            <p className="text-sm text-muted-foreground">© 2024 Index. Open Source • Completamente Gratuito</p>
             <div className="flex items-center gap-4 mt-4 md:mt-0">
               <Link href="#" className="text-muted-foreground hover:text-primary transition-colors">
                 <span className="sr-only">GitHub</span>

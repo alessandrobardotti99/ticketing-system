@@ -1,42 +1,51 @@
 "use client"
 
-import { useState, useMemo } from "react"
+import { useState, useMemo, useEffect } from "react"
 import { motion } from "framer-motion"
-import { User, Mail, Shield, Camera, Save, X, Ticket, Clock, CheckCircle, AlertCircle } from "lucide-react"
+import { User, Mail, Shield, Camera, Save, X, Ticket, Clock, CheckCircle, AlertCircle, Loader2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { useAuth } from "@/components/auth-provider"
 import { useTickets } from "@/hooks/use-tickets"
+import { useProfile, UserProfile } from "@/hooks/use-profile"
+import { getRoleDisplayName } from "@/db/schema"
 
 export default function ProfilePage() {
-  const { user } = useAuth()
+  const { profile, isLoading, error, updateProfile } = useProfile()
   const { tickets } = useTickets()
   const [isEditing, setIsEditing] = useState(false)
-  const [profile, setProfile] = useState({
-    name: "Admin User",
-    email: "admin@example.com",
-    role: "Administrator",
-    bio: "System administrator with 5+ years of experience in IT support and project management.",
-    phone: "+1 (555) 123-4567",
-    location: "New York, NY",
-    timezone: "America/New_York",
-  })
+  const [isSaving, setIsSaving] = useState(false)
+  const [editedProfile, setEditedProfile] = useState<Partial<UserProfile>>({})
 
-  const [editedProfile, setEditedProfile] = useState(profile)
+  // Inizializza editedProfile quando il profilo viene caricato
+  useEffect(() => {
+    if (profile && !isEditing) {
+      setEditedProfile({
+        name: profile.name,
+        bio: profile.bio || "",
+        phone: profile.phone || "",
+        location: profile.location || "",
+        timezone: profile.timezone || "Europe/Rome",
+      })
+    }
+  }, [profile, isEditing])
 
   // Calcola le statistiche dei ticket per l'utente corrente
   const ticketStats = useMemo(() => {
-    const userTickets = tickets.filter((ticket) => ticket.assignee === user?.name || ticket.createdBy === user?.name)
+    if (!profile) return { total: 0, open: 0, inProgress: 0, completed: 0, assignedToMe: 0, createdByMe: 0 }
+
+    const userTickets = tickets.filter((ticket) => 
+      ticket.assignee === profile.name || ticket.createdBy === profile.name
+    )
 
     const totalTickets = userTickets.length
     const openTickets = userTickets.filter((t) => t.status === "open").length
     const inProgressTickets = userTickets.filter((t) => t.status === "in-progress").length
     const completedTickets = userTickets.filter((t) => t.status === "completed").length
-    const assignedToMe = userTickets.filter((t) => t.assignee === user?.name).length
-    const createdByMe = userTickets.filter((t) => t.createdBy === user?.name).length
+    const assignedToMe = userTickets.filter((t) => t.assignee === profile.name).length
+    const createdByMe = userTickets.filter((t) => t.createdBy === profile.name).length
 
     return {
       total: totalTickets,
@@ -46,17 +55,82 @@ export default function ProfilePage() {
       assignedToMe,
       createdByMe,
     }
-  }, [tickets, user])
+  }, [tickets, profile])
 
-  const handleSave = () => {
-    setProfile(editedProfile)
-    setIsEditing(false)
-    // Here you would typically save to your backend
+  const handleSave = async () => {
+    if (!profile) return
+
+    setIsSaving(true)
+    try {
+      const result = await updateProfile(editedProfile)
+      if (result.success) {
+        setIsEditing(false)
+        // Mostra un messaggio di successo se necessario
+      }
+    } catch (error) {
+      console.error("Errore nel salvataggio:", error)
+    } finally {
+      setIsSaving(false)
+    }
   }
 
   const handleCancel = () => {
-    setEditedProfile(profile)
+    if (profile) {
+      setEditedProfile({
+        name: profile.name,
+        bio: profile.bio || "",
+        phone: profile.phone || "",
+        location: profile.location || "",
+        timezone: profile.timezone || "Europe/Rome",
+      })
+    }
     setIsEditing(false)
+  }
+
+  const handleEdit = () => {
+    if (profile) {
+      setEditedProfile({
+        name: profile.name,
+        bio: profile.bio || "",
+        phone: profile.phone || "",
+        location: profile.location || "",
+        timezone: profile.timezone || "Europe/Rome",
+      })
+      setIsEditing(true)
+    }
+  }
+
+  // Loading state
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <Loader2 className="w-8 h-8 animate-spin" />
+        <span className="ml-2">Caricamento profilo...</span>
+      </div>
+    )
+  }
+
+  // Error state
+  if (error || !profile) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="text-center">
+          <AlertCircle className="w-12 h-12 text-red-500 mx-auto mb-4" />
+          <h2 className="text-xl font-semibold mb-2">Errore nel caricamento</h2>
+          <p className="text-muted-foreground">{error || "Impossibile caricare il profilo"}</p>
+        </div>
+      </div>
+    )
+  }
+
+  // Genera le iniziali per l'avatar
+  const getInitials = (name: string) => {
+    return name
+      .split(" ")
+      .map((n) => n[0])
+      .join("")
+      .toUpperCase()
+      .slice(0, 2)
   }
 
   return (
@@ -68,23 +142,27 @@ export default function ProfilePage() {
     >
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-3xl font-bold">Profile</h1>
-          <p className="text-muted-foreground">Manage your account settings and preferences</p>
+          <h1 className="text-3xl font-bold">Profilo</h1>
+          <p className="text-muted-foreground">Gestisci le impostazioni del tuo account</p>
         </div>
         {!isEditing ? (
-          <Button onClick={() => setIsEditing(true)}>
+          <Button onClick={handleEdit}>
             <User className="w-4 h-4 mr-2" />
-            Edit Profile
+            Modifica Profilo
           </Button>
         ) : (
           <div className="flex gap-2">
-            <Button onClick={handleSave}>
-              <Save className="w-4 h-4 mr-2" />
-              Save Changes
+            <Button onClick={handleSave} disabled={isSaving}>
+              {isSaving ? (
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+              ) : (
+                <Save className="w-4 h-4 mr-2" />
+              )}
+              Salva Modifiche
             </Button>
-            <Button variant="outline" onClick={handleCancel}>
+            <Button variant="outline" onClick={handleCancel} disabled={isSaving}>
               <X className="w-4 h-4 mr-2" />
-              Cancel
+              Annulla
             </Button>
           </div>
         )}
@@ -93,16 +171,24 @@ export default function ProfilePage() {
       <div className="grid gap-6 md:grid-cols-3">
         {/* Profile Picture */}
         <motion.div
-          className="card"
+          className="card flex items-center justify-center"
           initial={{ opacity: 0, x: -20 }}
           animate={{ opacity: 1, x: 0 }}
           transition={{ duration: 0.3, delay: 0.1 }}
         >
           <div className="text-center">
             <div className="relative inline-block">
-              <div className="w-24 h-24 bg-primary text-primary-foreground rounded-full flex items-center justify-center text-2xl font-bold mx-auto mb-4">
-                AU
-              </div>
+              {profile.image ? (
+                <img
+                  src={profile.image}
+                  alt={profile.name}
+                  className="w-24 h-24 rounded-full object-cover mx-auto mb-4"
+                />
+              ) : (
+                <div className="w-24 h-24 bg-primary text-primary-foreground rounded-full flex items-center justify-center text-2xl font-bold mx-auto mb-4">
+                  {getInitials(profile.name)}
+                </div>
+              )}
               {isEditing && (
                 <button className="absolute bottom-0 right-0 w-8 h-8 bg-accent text-accent-foreground rounded-full flex items-center justify-center hover:bg-accent/80 transition-colors">
                   <Camera className="w-4 h-4" />
@@ -110,7 +196,10 @@ export default function ProfilePage() {
               )}
             </div>
             <h3 className="font-semibold text-lg">{profile.name}</h3>
-            <p className="text-muted-foreground">{profile.role}</p>
+            <p className="text-muted-foreground">{getRoleDisplayName(profile.role)}</p>
+            {profile.company && (
+              <p className="text-sm text-muted-foreground mt-1">{profile.company}</p>
+            )}
           </div>
         </motion.div>
 
@@ -121,14 +210,14 @@ export default function ProfilePage() {
           animate={{ opacity: 1, x: 0 }}
           transition={{ duration: 0.3, delay: 0.2 }}
         >
-          <h3 className="text-lg font-semibold mb-4">Personal Information</h3>
+          <h3 className="text-lg font-semibold mb-4">Informazioni Personali</h3>
           <div className="grid gap-4 md:grid-cols-2">
             <div>
-              <Label htmlFor="name">Full Name</Label>
+              <Label htmlFor="name">Nome Completo</Label>
               {isEditing ? (
                 <Input
                   id="name"
-                  value={editedProfile.name}
+                  value={editedProfile.name || ""}
                   onChange={(e) => setEditedProfile({ ...editedProfile, name: e.target.value })}
                 />
               ) : (
@@ -140,73 +229,40 @@ export default function ProfilePage() {
             </div>
 
             <div>
-              <Label htmlFor="email">Email Address</Label>
-              {isEditing ? (
-                <Input
-                  id="email"
-                  type="email"
-                  value={editedProfile.email}
-                  onChange={(e) => setEditedProfile({ ...editedProfile, email: e.target.value })}
-                />
-              ) : (
-                <div className="flex items-center gap-2 mt-1">
-                  <Mail className="w-4 h-4 text-muted-foreground" />
-                  <span>{profile.email}</span>
-                </div>
-              )}
-            </div>
-
-            <div>
-              <Label htmlFor="phone">Phone Number</Label>
-              {isEditing ? (
-                <Input
-                  id="phone"
-                  value={editedProfile.phone}
-                  onChange={(e) => setEditedProfile({ ...editedProfile, phone: e.target.value })}
-                />
-              ) : (
-                <div className="flex items-center gap-2 mt-1">
-                  <span>{profile.phone}</span>
-                </div>
-              )}
-            </div>
-
-            <div>
-              <Label htmlFor="location">Location</Label>
-              {isEditing ? (
-                <Input
-                  id="location"
-                  value={editedProfile.location}
-                  onChange={(e) => setEditedProfile({ ...editedProfile, location: e.target.value })}
-                />
-              ) : (
-                <div className="flex items-center gap-2 mt-1">
-                  <span>{profile.location}</span>
-                </div>
-              )}
-            </div>
-
-            <div className="md:col-span-2">
-              <Label htmlFor="role">Role</Label>
+              <Label htmlFor="email">Indirizzo Email</Label>
               <div className="flex items-center gap-2 mt-1">
-                <Shield className="w-4 h-4 text-muted-foreground" />
-                <span>{profile.role}</span>
+                <Mail className="w-4 h-4 text-muted-foreground" />
+                <span>{profile.email}</span>
+                {profile.emailVerified && (
+                  <CheckCircle className="w-4 h-4 text-green-500" />
+                )}
               </div>
             </div>
 
-            <div className="md:col-span-2">
-              <Label htmlFor="bio">Bio</Label>
+            <div>
+              <Label htmlFor="phone">Numero di Telefono</Label>
               {isEditing ? (
-                <Textarea
-                  id="bio"
-                  value={editedProfile.bio}
-                  onChange={(e) => setEditedProfile({ ...editedProfile, bio: e.target.value })}
-                  rows={3}
+                <Input
+                  id="phone"
+                  value={editedProfile.phone || ""}
+                  onChange={(e) => setEditedProfile({ ...editedProfile, phone: e.target.value })}
+                  placeholder="+39 123 456 7890"
                 />
               ) : (
-                <p className="mt-1 text-sm text-muted-foreground">{profile.bio}</p>
+                <div className="flex items-center gap-2 mt-1">
+                  <span>{profile.phone || "Non specificato"}</span>
+                </div>
               )}
             </div>
+
+            <div className="md:col-span-2">
+              <Label htmlFor="role">Ruolo</Label>
+              <div className="flex items-center gap-2 mt-1">
+                <Shield className="w-4 h-4 text-muted-foreground" />
+                <span>{getRoleDisplayName(profile.role)}</span>
+              </div>
+            </div>
+
           </div>
         </motion.div>
 
@@ -217,14 +273,14 @@ export default function ProfilePage() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.3, delay: 0.3 }}
         >
-          <h3 className="text-lg font-semibold mb-4">Ticket Statistics</h3>
+          <h3 className="text-lg font-semibold mb-4">Statistiche Ticket</h3>
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
             <div className="bg-muted/50 rounded-lg p-4 text-center">
               <div className="flex items-center justify-center w-12 h-12 bg-primary/10 text-primary rounded-lg mx-auto mb-2">
                 <Ticket className="w-6 h-6" />
               </div>
               <div className="text-2xl font-bold">{ticketStats.total}</div>
-              <div className="text-sm text-muted-foreground">Total Tickets</div>
+              <div className="text-sm text-muted-foreground">Ticket Totali</div>
             </div>
 
             <div className="bg-muted/50 rounded-lg p-4 text-center">
@@ -232,7 +288,7 @@ export default function ProfilePage() {
                 <AlertCircle className="w-6 h-6" />
               </div>
               <div className="text-2xl font-bold text-red-600">{ticketStats.open}</div>
-              <div className="text-sm text-muted-foreground">Open Tickets</div>
+              <div className="text-sm text-muted-foreground">Aperti</div>
             </div>
 
             <div className="bg-muted/50 rounded-lg p-4 text-center">
@@ -240,7 +296,7 @@ export default function ProfilePage() {
                 <Clock className="w-6 h-6" />
               </div>
               <div className="text-2xl font-bold text-yellow-600">{ticketStats.inProgress}</div>
-              <div className="text-sm text-muted-foreground">In Progress</div>
+              <div className="text-sm text-muted-foreground">In Corso</div>
             </div>
 
             <div className="bg-muted/50 rounded-lg p-4 text-center">
@@ -248,21 +304,21 @@ export default function ProfilePage() {
                 <CheckCircle className="w-6 h-6" />
               </div>
               <div className="text-2xl font-bold text-green-600">{ticketStats.completed}</div>
-              <div className="text-sm text-muted-foreground">Completed</div>
+              <div className="text-sm text-muted-foreground">Completati</div>
             </div>
           </div>
 
           <div className="grid gap-4 md:grid-cols-2 mt-4">
             <div className="bg-muted/30 rounded-lg p-4">
-              <h4 className="font-medium mb-2">Assigned to Me</h4>
+              <h4 className="font-medium mb-2">Assegnati a Me</h4>
               <div className="text-2xl font-bold text-blue-600">{ticketStats.assignedToMe}</div>
-              <div className="text-sm text-muted-foreground">Tickets currently assigned</div>
+              <div className="text-sm text-muted-foreground">Ticket attualmente assegnati</div>
             </div>
 
             <div className="bg-muted/30 rounded-lg p-4">
-              <h4 className="font-medium mb-2">Created by Me</h4>
+              <h4 className="font-medium mb-2">Creati da Me</h4>
               <div className="text-2xl font-bold text-purple-600">{ticketStats.createdByMe}</div>
-              <div className="text-sm text-muted-foreground">Tickets I've created</div>
+              <div className="text-sm text-muted-foreground">Ticket che ho creato</div>
             </div>
           </div>
         </motion.div>
@@ -274,30 +330,29 @@ export default function ProfilePage() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.3, delay: 0.4 }}
         >
-          <h3 className="text-lg font-semibold mb-4">Preferences</h3>
+          <h3 className="text-lg font-semibold mb-4">Preferenze</h3>
           <div className="grid gap-4 md:grid-cols-2">
             <div>
-              <Label htmlFor="timezone">Timezone</Label>
+              <Label htmlFor="timezone">Fuso Orario</Label>
               {isEditing ? (
                 <Select
-                  value={editedProfile.timezone}
+                  value={editedProfile.timezone || "Europe/Rome"}
                   onValueChange={(value) => setEditedProfile({ ...editedProfile, timezone: value })}
                 >
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="America/New_York">Eastern Time (ET)</SelectItem>
-                    <SelectItem value="America/Chicago">Central Time (CT)</SelectItem>
-                    <SelectItem value="America/Denver">Mountain Time (MT)</SelectItem>
-                    <SelectItem value="America/Los_Angeles">Pacific Time (PT)</SelectItem>
-                    <SelectItem value="Europe/London">Greenwich Mean Time (GMT)</SelectItem>
-                    <SelectItem value="Europe/Paris">Central European Time (CET)</SelectItem>
+                    <SelectItem value="Europe/Rome">Ora Italiana (CET)</SelectItem>
+                    <SelectItem value="Europe/London">Ora di Greenwich (GMT)</SelectItem>
+                    <SelectItem value="Europe/Paris">Ora Europea Centrale (CET)</SelectItem>
+                    <SelectItem value="America/New_York">Ora Orientale (ET)</SelectItem>
+                    <SelectItem value="America/Los_Angeles">Ora del Pacifico (PT)</SelectItem>
                   </SelectContent>
                 </Select>
               ) : (
                 <div className="mt-1">
-                  <span>{profile.timezone.replace("_", " ")}</span>
+                  <span>{profile.timezone?.replace("_", " ") || "Europe/Rome"}</span>
                 </div>
               )}
             </div>

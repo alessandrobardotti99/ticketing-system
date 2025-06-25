@@ -47,7 +47,7 @@ const setCookie = (name: string, value: string, days: number = 365): void => {
 export function ThemeProvider({
   children,
   defaultTheme = "system",
-  storageKey = "ticketflow-theme",
+  storageKey = "Index-theme",
   ...props
 }: ThemeProviderProps) {
   const [theme, setTheme] = useState<Theme>(() => {

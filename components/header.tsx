@@ -22,7 +22,7 @@ export function Header() {
               <span className="text-primary-foreground font-bold text-sm">TF</span>
             </div>
             <div>
-              <h1 className="text-xl font-bold">TicketFlow</h1>
+              <h1 className="text-xl font-bold">Index</h1>
               <p className="text-xs text-muted-foreground">Professional Ticketing System</p>
             </div>
           </div>

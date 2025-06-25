@@ -8,7 +8,7 @@ import { ThemeProvider } from "@/components/theme-provider"
 const inter = Inter({ subsets: ["latin"] })
 
 export const metadata: Metadata = {
-  title: "TicketFlow - Professional Ticketing System",
+  title: "Index - Professional Ticketing System",
   description: "Modern ticketing system for managing tasks and support tickets",
   generator: 'v0.dev'
 }
@@ -38,7 +38,7 @@ export default function RootLayout({
                 }
 
                 function applyTheme() {
-                  const storageKey = 'ticketflow-theme';
+                  const storageKey = 'Index-theme';
                   const theme = getCookie(storageKey) || 'system';
                   const root = document.documentElement;
                   
@@ -64,7 +64,7 @@ export default function RootLayout({
         />
       </head>
       <body className={inter.className}>
-        <ThemeProvider defaultTheme="system" storageKey="ticketflow-theme">
+        <ThemeProvider defaultTheme="system" storageKey="Index-theme">
           <AuthProvider>{children}</AuthProvider>
         </ThemeProvider>
       </body>
