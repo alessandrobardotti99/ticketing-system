@@ -2,7 +2,6 @@
 
 import Link from "next/link"
 import type { Ticket } from "@/types"
-import { useTicketStatuses } from "@/hooks/use-ticket-statuses"
 import { formatDate } from "@/lib/utils"
 import { ExternalLink } from "lucide-react"
 import { motion } from "framer-motion"
@@ -12,12 +11,13 @@ interface TicketTableProps {
 }
 
 export function TicketTable({ tickets }: TicketTableProps) {
-  const { getStatusLabel } = useTicketStatuses()
 
   const getPriorityColor = (priority: string) => {
     switch (priority) {
-      case "high":
+      case "urgent":
         return "text-red-600 bg-red-50 dark:bg-red-900/20 dark:text-red-400"
+      case "high":
+        return "text-orange-600 bg-orange-50 dark:bg-orange-900/20 dark:text-orange-400"
       case "medium":
         return "text-yellow-600 bg-yellow-50 dark:bg-yellow-900/20 dark:text-yellow-400"
       case "low":
@@ -27,18 +27,58 @@ export function TicketTable({ tickets }: TicketTableProps) {
     }
   }
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case "open":
-        return "text-blue-600 bg-blue-50 dark:bg-blue-900/20 dark:text-blue-400"
-      case "in-progress":
-        return "text-yellow-600 bg-yellow-50 dark:bg-yellow-900/20 dark:text-yellow-400"
-      case "completed":
-        return "text-green-600 bg-green-50 dark:bg-green-900/20 dark:text-green-400"
-      case "archived":
-        return "text-muted-foreground bg-muted"
+  const getPriorityLabel = (priority: string) => {
+    switch (priority) {
+      case "urgent":
+        return "Urgente"
+      case "high":
+        return "Alta"
+      case "medium":
+        return "Media"
+      case "low":
+        return "Bassa"
       default:
-        return "text-muted-foreground bg-muted"
+        return priority
+    }
+  }
+
+  // ✅ Nuova funzione per ottenere lo style dello status basato sul colore
+  const getStatusStyle = (statusColor: string | null) => {
+    if (!statusColor) {
+      return {
+        backgroundColor: "#f3f4f6",
+        borderColor: "#d1d5db",
+        color: "#6b7280"
+      }
+    }
+
+    return {
+      backgroundColor: `${statusColor}20`, // 20 = opacity bassa
+      borderColor: statusColor,
+      color: statusColor
+    }
+  }
+
+  // ✅ Fallback per status senza label
+  const getStatusDisplay = (ticket: any) => {
+    // Se abbiamo statusLabel, usalo
+    if (ticket.statusLabel) {
+      return ticket.statusLabel
+    }
+
+    // Fallback per vecchi status enum
+    switch (ticket.status) {
+      case "open":
+        return "Aperto"
+      case "in-progress":
+        return "In Corso"
+      case "completed":
+      case "resolved":
+        return "Completato"
+      case "closed":
+        return "Chiuso"
+      default:
+        return ticket.status || "Sconosciuto"
     }
   }
 
@@ -54,25 +94,28 @@ export function TicketTable({ tickets }: TicketTableProps) {
           <thead className="bg-muted/50 border-b border-border">
             <tr>
               <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                Title
+                Titolo
               </th>
               <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
                 Status
               </th>
               <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                Priority
+                Priorità
               </th>
               <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                Assignee
+                Progetto
               </th>
               <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                Due Date
+                Assegnato a
               </th>
               <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                Created
+                Scadenza
               </th>
               <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                Actions
+                Creato
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                Azioni
               </th>
             </tr>
           </thead>
@@ -90,17 +133,31 @@ export function TicketTable({ tickets }: TicketTableProps) {
                   <div className="text-sm text-muted-foreground truncate max-w-xs">{ticket.description}</div>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
-                  <span className={`inline-flex px-2 py-1 text-xs font-semibold ${getStatusColor(ticket.status)}`}>
-                    {getStatusLabel(ticket.status)}
+                  {/* ✅ Usa il nuovo sistema di status */}
+                  <span 
+                    className="inline-flex px-2 py-1 text-xs font-semibold rounded-full border"
+                    style={getStatusStyle((ticket as any).statusColor)}
+                  >
+                    {getStatusDisplay(ticket)}
                   </span>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
-                  <span className={`inline-flex px-2 py-1 text-xs font-semibold ${getPriorityColor(ticket.priority)}`}>
-                    {ticket.priority}
+                  <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getPriorityColor(ticket.priority)}`}>
+                    {getPriorityLabel(ticket.priority)}
                   </span>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-card-foreground">
-                  {ticket.assignee || "Unassigned"}
+                  {(ticket as any).project ? (
+                    <span className="inline-flex items-center gap-1">
+                      <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                      {(ticket as any).project}
+                    </span>
+                  ) : (
+                    <span className="text-muted-foreground italic">Nessun progetto</span>
+                  )}
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap text-sm text-card-foreground">
+                  {ticket.assignee || "Non assegnato"}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-card-foreground">
                   {ticket.dueDate ? formatDate(ticket.dueDate) : "-"}
@@ -114,7 +171,7 @@ export function TicketTable({ tickets }: TicketTableProps) {
                     className="text-muted-foreground hover:text-foreground flex items-center gap-1 transition-colors"
                   >
                     <ExternalLink className="w-4 h-4" />
-                    View
+                    Visualizza
                   </Link>
                 </td>
               </motion.tr>

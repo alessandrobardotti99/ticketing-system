@@ -1,6 +1,6 @@
 "use client"
 
-import { useAuth } from "@/components/auth-provider"
+import { useProfile } from "@/hooks/use-profile" // ✅ USA SOLO useProfile
 
 export interface Permission {
   id: string
@@ -27,10 +27,11 @@ const permissions: Permission[] = [
   { id: "time.manage", name: "Manage Time Tracking", description: "Can manage time tracking for all users" },
 ]
 
+// ✅ Ruoli corretti che corrispondono al database
 const roles: Role[] = [
   {
-    id: "admin",
-    name: "Administrator",
+    id: "administrator",
+    name: "Administrator", 
     permissions: [
       "tickets.create",
       "tickets.edit",
@@ -50,24 +51,84 @@ const roles: Role[] = [
     permissions: ["tickets.create", "tickets.edit", "tickets.view_all", "users.view", "time.manage"],
   },
   {
-    id: "user",
+    id: "user", 
     name: "User",
-    permissions: [],
+    permissions: [], // ✅ Gli utenti base NON possono creare ticket
   },
 ]
 
 export function usePermissions() {
-  const { user } = useAuth()
+  const { profile, isLoading } = useProfile() // ✅ Usa SOLO useProfile
+
+  console.log("🔍 usePermissions DEBUG:", {
+    profile,
+    isLoading,
+    profileRole: profile?.role,
+    rolesAvailable: roles.map(r => r.id)
+  })
 
   const getUserRole = () => {
-    if (!user) return null
-    return roles.find((role) => role.id === user.role) || roles.find((role) => role.id === "user")
+    if (!profile?.role) {
+      console.warn("🚨 Nessun ruolo trovato nel profile")
+      return null
+    }
+    
+    const roleToCheck = profile.role
+    console.log(`🔍 Cercando ruolo per: "${roleToCheck}"`)
+    
+    const foundRole = roles.find((role) => role.id === roleToCheck)
+    
+    if (!foundRole) {
+      console.warn(`🚨 Ruolo "${roleToCheck}" non trovato. Ruoli disponibili:`, roles.map(r => r.id))
+      // Fallback al ruolo user
+      const fallbackRole = roles.find((role) => role.id === "user")
+      console.log(`🔄 Usando fallback role: ${fallbackRole?.name}`)
+      return fallbackRole
+    }
+    
+    console.log(`✅ Ruolo trovato: "${foundRole.name}" con ${foundRole.permissions.length} permessi:`, foundRole.permissions)
+    return foundRole
   }
 
   const hasPermission = (permissionId: string): boolean => {
+    // Se i dati stanno caricando, restituisci false
+    if (isLoading) {
+      console.log(`⏳ Dati in caricamento, permesso ${permissionId} = false`)
+      return false
+    }
+
     const role = getUserRole()
-    if (!role) return false
-    return role.permissions.includes(permissionId)
+    if (!role) {
+      console.warn(`🚨 Nessun ruolo per controllare permesso: ${permissionId}`)
+      return false
+    }
+    
+    const hasAccess = role.permissions.includes(permissionId)
+    console.log(`🔑 Controllo permesso: "${permissionId}" = ${hasAccess} (ruolo: ${role.name})`)
+    return hasAccess
+  }
+
+  // ✅ Se i dati stanno caricando, restituisci funzioni che tornano false
+  if (isLoading) {
+    console.log("⏳ Hook usePermissions in loading state")
+    return {
+      permissions,
+      roles,
+      getUserRole: () => null,
+      hasPermission: () => false,
+      canCreateTickets: () => false,
+      canEditTickets: () => false,
+      canDeleteTickets: () => false,
+      canViewAllTickets: () => false,
+      canCreateUsers: () => false,
+      canEditUsers: () => false,
+      canDeleteUsers: () => false,
+      canViewUsers: () => false,
+      canManageSettings: () => false,
+      canManageTime: () => false,
+      canAccessTicket: () => false,
+      canEditTicket: () => false,
+    }
   }
 
   const canCreateTickets = () => hasPermission("tickets.create")
@@ -83,18 +144,18 @@ export function usePermissions() {
 
   const canAccessTicket = (ticket: any): boolean => {
     if (canViewAllTickets()) return true
-    if (!user) return false
+    if (!profile) return false
 
     // L'utente può accedere se è l'assignee o il creatore
-    return ticket.assignee === user.name || ticket.createdBy === user.name
+    return ticket.assignee === profile.name || ticket.createdBy === profile.name
   }
 
   const canEditTicket = (ticket: any): boolean => {
     if (canEditTickets()) return true
-    if (!user) return false
+    if (!profile) return false
 
     // L'utente può modificare se è l'assignee
-    return ticket.assignee === user.name
+    return ticket.assignee === profile.name
   }
 
   return {

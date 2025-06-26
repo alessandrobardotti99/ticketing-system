@@ -1,50 +1,102 @@
 "use client"
 
-import { useState, useMemo } from "react"
-import type { Project } from "@/types"
+import { useState, useEffect, useMemo } from "react"
+import { useProfile } from "@/hooks/use-profile" // ✅ Usa useProfile invece di useAuth
 
-const initialProjects: Project[] = [
-  {
-    id: "1",
-    name: "Website Redesign",
-    description: "Complete redesign of the company website with modern UI/UX",
-    status: "active",
-    createdAt: "2024-01-10T08:00:00Z",
-    updatedAt: "2024-01-15T10:00:00Z",
-    createdBy: "Admin User",
-    color: "bg-blue-100 border-blue-300 text-blue-800",
-  },
-  {
-    id: "2",
-    name: "Mobile App Development",
-    description: "Development of iOS and Android mobile applications",
-    status: "active",
-    createdAt: "2024-01-12T09:00:00Z",
-    updatedAt: "2024-01-16T14:30:00Z",
-    createdBy: "Admin User",
-    color: "bg-green-100 border-green-300 text-green-800",
-  },
-  {
-    id: "3",
-    name: "Database Migration",
-    description: "Migration from legacy database to new cloud infrastructure",
-    status: "completed",
-    createdAt: "2024-01-05T07:00:00Z",
-    updatedAt: "2024-01-14T16:00:00Z",
-    createdBy: "Admin User",
-    color: "bg-purple-100 border-purple-300 text-purple-800",
-  },
-]
+// Tipi per il progetto con statistiche
+export interface ProjectWithStats {
+  id: string
+  name: string
+  description: string
+  status: "active" | "completed" | "on-hold" | "cancelled"
+  color: string
+  createdAt: string
+  updatedAt: string
+  createdBy: string
+  stats: {
+    total: number
+    open: number
+    "in-progress": number
+    completed: number
+    closed: number
+  }
+}
 
 export function useProjects() {
-  const [projects, setProjects] = useState<Project[]>(initialProjects)
+  const [projects, setProjects] = useState<ProjectWithStats[]>([])
+  const [isLoading, setIsLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
   const [filters, setFilters] = useState({
     status: "",
     search: "",
   })
+  const { profile, isLoading: profileLoading } = useProfile() // ✅ Usa useProfile
 
+  // ✅ DEBUG: Aggiungi console.log per verificare
+  console.log("🔍 useProjects DEBUG:", {
+    profile,
+    profileLoading,
+    hasProfile: !!profile,
+    profileId: profile?.id
+  })
+
+  // Fetch progetti dall'API
+  const fetchProjects = async () => {
+    try {
+      console.log("📡 Iniziando fetch progetti...")
+      setIsLoading(true)
+      setError(null)
+
+      const params = new URLSearchParams()
+      if (filters.status) params.append("status", filters.status)
+      if (filters.search) params.append("search", filters.search)
+
+      const url = `/api/projects?${params.toString()}`
+      console.log("🌐 Chiamando API:", url)
+
+      const response = await fetch(url)
+      
+      console.log("📥 Risposta API:", response.status, response.statusText)
+      
+      if (!response.ok) {
+        const errorText = await response.text()
+        console.error("❌ Errore API:", errorText)
+        throw new Error(`Errore ${response.status}: ${response.statusText}`)
+      }
+
+      const data = await response.json()
+      console.log("✅ Dati ricevuti:", data)
+      
+      if (data.success) {
+        setProjects(data.data)
+        console.log(`✅ ${data.data.length} progetti caricati`)
+      } else {
+        throw new Error(data.error || "Errore sconosciuto")
+      }
+
+    } catch (err) {
+      console.error("❌ Errore nel fetch progetti:", err)
+      setError(err instanceof Error ? err.message : "Errore nel caricamento")
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  // Fetch progetti quando cambiano i filtri o al mount
+  useEffect(() => {
+    // ✅ Attendi che il profilo sia caricato prima di fare la chiamata API
+    if (!profileLoading && profile) {
+      console.log("🚀 Chiamando fetchProjects...")
+      fetchProjects()
+    } else {
+      console.log("⏳ In attesa del profilo...", { profileLoading, hasProfile: !!profile })
+    }
+  }, [profile, profileLoading, filters.status, filters.search])
+
+  // Progetti filtrati lato client (per filtri aggiuntivi non supportati dall'API)
   const filteredProjects = useMemo(() => {
     return projects.filter((project) => {
+      // Questi filtri sono già gestiti dall'API, ma li lasciamo per compatibilità
       const matchesStatus = !filters.status || project.status === filters.status
       const matchesSearch =
         !filters.search ||
@@ -55,51 +107,121 @@ export function useProjects() {
     })
   }, [projects, filters])
 
-  const createProject = (projectData: Omit<Project, "id" | "createdAt" | "updatedAt">) => {
-    const colors = [
-      "bg-blue-100 border-blue-300 text-blue-800",
-      "bg-green-100 border-green-300 text-green-800",
-      "bg-purple-100 border-purple-300 text-purple-800",
-      "bg-yellow-100 border-yellow-300 text-yellow-800",
-      "bg-red-100 border-red-300 text-red-800",
-      "bg-indigo-100 border-indigo-300 text-indigo-800",
-    ]
+  // Crea un nuovo progetto
+  const createProject = async (projectData: {
+    name: string
+    description?: string
+    status?: "active" | "completed" | "on-hold" | "cancelled"
+    color?: string
+  }) => {
+    try {
+      const response = await fetch("/api/projects", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(projectData),
+      })
 
-    const newProject: Project = {
-      ...projectData,
-      id: Date.now().toString(),
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-      color: colors[Math.floor(Math.random() * colors.length)],
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.error || "Errore nella creazione del progetto")
+      }
+
+      const data = await response.json()
+      
+      if (data.success) {
+        // Ricarica i progetti per ottenere i dati aggiornati
+        await fetchProjects()
+        return data.data
+      } else {
+        throw new Error(data.error || "Errore nella creazione")
+      }
+
+    } catch (err) {
+      console.error("Errore nella creazione del progetto:", err)
+      throw err
     }
-    setProjects((prev) => [newProject, ...prev])
-    return newProject
   }
 
-  const updateProject = (id: string, updates: Partial<Project>) => {
-    setProjects((prev) =>
-      prev.map((project) =>
-        project.id === id ? { ...project, ...updates, updatedAt: new Date().toISOString() } : project,
-      ),
-    )
+  // Aggiorna un progetto esistente
+  const updateProject = async (id: string, updates: Partial<ProjectWithStats>) => {
+    try {
+      const response = await fetch(`/api/projects/${id}`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(updates),
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.error || "Errore nell'aggiornamento del progetto")
+      }
+
+      const data = await response.json()
+      
+      if (data.success) {
+        // Aggiorna il progetto nello stato locale
+        setProjects((prev) =>
+          prev.map((project) =>
+            project.id === id ? { ...project, ...data.data } : project
+          )
+        )
+        return data.data
+      } else {
+        throw new Error(data.error || "Errore nell'aggiornamento")
+      }
+
+    } catch (err) {
+      console.error("Errore nell'aggiornamento del progetto:", err)
+      throw err
+    }
   }
 
-  const deleteProject = (id: string) => {
-    setProjects((prev) => prev.filter((project) => project.id !== id))
+  // Elimina un progetto
+  const deleteProject = async (id: string) => {
+    try {
+      const response = await fetch(`/api/projects/${id}`, {
+        method: "DELETE",
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.error || "Errore nell'eliminazione del progetto")
+      }
+
+      // Rimuovi il progetto dallo stato locale
+      setProjects((prev) => prev.filter((project) => project.id !== id))
+
+    } catch (err) {
+      console.error("Errore nell'eliminazione del progetto:", err)
+      throw err
+    }
   }
 
+  // Trova un progetto per ID
   const getProjectById = (id: string) => {
     return projects.find((project) => project.id === id)
+  }
+
+  // Ricarica manualmente i progetti
+  const refreshProjects = () => {
+    return fetchProjects()
   }
 
   return {
     projects,
     filteredProjects,
+    isLoading,
+    error,
     filters,
     setFilters,
     createProject,
     updateProject,
     deleteProject,
     getProjectById,
+    refreshProjects,
   }
 }

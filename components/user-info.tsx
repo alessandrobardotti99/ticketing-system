@@ -128,17 +128,9 @@ export function UserInfo({ profile }: UserInfoProps) {
               {/* Header con info utente */}
               <div className="p-3 border-b border-border bg-muted/50">
                 <div className="flex items-center gap-3">
-                  {profile.image ? (
-                    <img
-                      src={profile.image}
-                      alt={profile.name}
-                      className="w-10 h-10 rounded-full object-cover"
-                    />
-                  ) : (
-                    <div className="w-10 h-10 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-sm font-semibold">
-                      {getInitials(profile.name)}
-                    </div>
-                  )}
+                  
+                   
+                  
                   <div className="flex-1">
                     <div className="font-medium text-sm">{profile.name}</div>
                     <div className="text-xs text-muted-foreground">{profile.email}</div>
