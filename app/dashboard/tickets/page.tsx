@@ -6,10 +6,11 @@ import { StatusManagement } from "@/components/status-management"
 import { KanbanBoard } from "@/components/kanban-board"
 import { usePermissions } from "@/hooks/use-permissions"
 import { useProfile } from "@/hooks/use-profile"
+import { useAuthorizedProjects } from "@/hooks/use-authorized-projects"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Plus, Search, LayoutGrid, List, Filter, Loader2, AlertCircle, TicketIcon } from "lucide-react"
 import Link from "next/link"
-import { useState, useEffect, useMemo, useCallback } from "react"
+import { useState, useMemo, useCallback, useEffect } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 
 // Interfaccia per i ticket
@@ -37,7 +38,7 @@ export default function TicketsPage() {
   const [error, setError] = useState<string | null>(null)
   const [activeTab, setActiveTab] = useState("table")
   const [showFilters, setShowFilters] = useState(false)
-  const [hasKanbanChanges, setHasKanbanChanges] = useState(false) // ✅ Traccia se ci sono stati cambiamenti nel Kanban
+  const [hasKanbanChanges, setHasKanbanChanges] = useState(false)
   const [filters, setFilters] = useState({
     status: "",
     priority: "",
@@ -46,7 +47,9 @@ export default function TicketsPage() {
     search: "",
   })
 
-  // ✅ Fetch tickets dall'API
+
+
+  // Fetch tickets dall'API
   const fetchTickets = useCallback(async () => {
     try {
       setIsLoading(true)
@@ -84,64 +87,70 @@ export default function TicketsPage() {
     }
   }, [filters])
 
-  // ✅ Carica tickets solo quando cambia il profilo o i filtri, NON quando cambia tab
-  useEffect(() => {
-    if (profile) {
-      fetchTickets()
-    }
-  }, [profile, fetchTickets])
+    useEffect(() => {
+  fetchTickets()
+}, [fetchTickets])
 
-  // ✅ Filtri applicati lato client per compatibilità con componenti esistenti
+  // Ottieni gli ID dei progetti unici dai ticket
+  const uniqueProjectIds = useMemo(() => Array.from(new Set(tickets.map(t => t.projectId))), [tickets])
+  // Crea array fake di progetti con solo id per useAuthorizedProjects
+  const fakeProjects = useMemo(() => uniqueProjectIds.map(id => ({ id })), [uniqueProjectIds])
+  
+  // Usa hook per autorizzazioni progetti
+  const { authorizedIds, loading: loadingAccess } = useAuthorizedProjects(fakeProjects)
+
+  // Filtra i ticket solo per progetti autorizzati + filtri utente
   const filteredTickets = useMemo(() => {
-    return tickets.filter((ticket) => {
-      const matchesStatus = !filters.status || ticket.status === filters.status
-      const matchesPriority = !filters.priority || ticket.priority === filters.priority
-      const matchesAssignee = !filters.assignee || ticket.assignee === filters.assignee
-      const matchesProject = !filters.projectId || ticket.projectId === filters.projectId
-      const matchesSearch =
-        !filters.search ||
-        ticket.title.toLowerCase().includes(filters.search.toLowerCase()) ||
-        ticket.description.toLowerCase().includes(filters.search.toLowerCase())
+    return tickets
+      .filter(ticket => authorizedIds.includes(ticket.projectId))
+      .filter((ticket) => {
+        const matchesStatus = !filters.status || ticket.status === filters.status
+        const matchesPriority = !filters.priority || ticket.priority === filters.priority
+        const matchesAssignee = !filters.assignee || ticket.assignee === filters.assignee
+        const matchesProject = !filters.projectId || ticket.projectId === filters.projectId
+        const matchesSearch =
+          !filters.search ||
+          ticket.title.toLowerCase().includes(filters.search.toLowerCase()) ||
+          ticket.description.toLowerCase().includes(filters.search.toLowerCase())
 
-      return matchesStatus && matchesPriority && matchesAssignee && matchesProject && matchesSearch
-    })
-  }, [tickets, filters])
+        return matchesStatus && matchesPriority && matchesAssignee && matchesProject && matchesSearch
+      })
+  }, [tickets, filters, authorizedIds])
 
   const hasActiveFilters = Object.values(filters).some((value) => value !== "")
 
-  // ✅ Handler per aggiornamento filtri
+  // Handler per aggiornamento filtri
   const handleFilterChange = (newFilters: typeof filters) => {
     setFilters(newFilters)
   }
 
-  // ✅ Handler per cambio tab (con smart re-fetch)
+  // Handler per cambio tab (con smart re-fetch)
   const handleTabChange = async (value: string) => {
     const previousTab = activeTab
     console.log(`🔄 Cambio tab da "${previousTab}" a "${value}"`)
     
-    // Se veniamo dal Kanban e andiamo alla tabella, e ci sono stati cambiamenti, fai refresh
     if (previousTab === "kanban" && value === "table" && hasKanbanChanges) {
       console.log("🔄 Refresh necessario: vengo dal Kanban con cambiamenti -> Tabella")
       setActiveTab(value)
       await fetchTickets()
-      setHasKanbanChanges(false) // Reset del flag
+      setHasKanbanChanges(false)
     } else {
       console.log("🔄 Cambio tab senza refresh - nessun cambiamento rilevato")
       setActiveTab(value)
     }
   }
 
-  // ✅ Refresh manuale
+  // Refresh manuale
   const handleRefresh = () => {
     console.log("🔄 Refresh manuale tickets")
-    setHasKanbanChanges(false) // Reset del flag
+    setHasKanbanChanges(false)
     fetchTickets()
   }
 
-  // ✅ Callback per aggiornamenti dal KanbanBoard
+  // Callback aggiornamento ticket da Kanban
   const handleTicketUpdate = useCallback((updatedTicket: TicketData) => {
     console.log("🔄 Aggiornamento ticket dal Kanban:", updatedTicket.id)
-    setHasKanbanChanges(true) // ✅ Marca che ci sono stati cambiamenti nel Kanban
+    setHasKanbanChanges(true)
     setTickets(prev => 
       prev.map(ticket => 
         ticket.id === updatedTicket.id ? updatedTicket : ticket
@@ -149,8 +158,10 @@ export default function TicketsPage() {
     )
   }, [])
 
-  // ✅ Loading state
-  if (isLoading && tickets.length === 0) {
+  const stillLoading = isLoading || loadingAccess
+
+  // Loading state
+  if (stillLoading && tickets.length === 0) {
     return (
       <motion.div
         className="space-y-6"
@@ -175,8 +186,8 @@ export default function TicketsPage() {
     )
   }
 
-  // ✅ Error state
-  if (error && tickets.length === 0) {
+  // Error state
+  if ((error || !authorizedIds) && tickets.length === 0) {
     return (
       <motion.div
         className="space-y-6"
@@ -194,12 +205,22 @@ export default function TicketsPage() {
         <div className="card text-center py-12">
           <AlertCircle className="w-12 h-12 text-red-400 mx-auto mb-4" />
           <h3 className="text-lg font-semibold text-neutral-800 mb-2">Errore nel caricamento</h3>
-          <p className="text-neutral-600 mb-4">{error}</p>
+          <p className="text-neutral-600 mb-4">{error || "Errore di autorizzazione"}</p>
           <button onClick={handleRefresh} className="btn-primary">
             Riprova
           </button>
         </div>
       </motion.div>
+    )
+  }
+
+  // Early return se nessun progetto autorizzato (opzionale)
+  if (!stillLoading && authorizedIds.length === 0) {
+    return (
+      <div className="text-center text-neutral-600 py-10">
+        <TicketIcon className="w-12 h-12 mx-auto mb-4 text-neutral-400" />
+        <p className="text-lg font-medium">Nessun ticket da visualizzare</p>
+      </div>
     )
   }
 
@@ -237,14 +258,12 @@ export default function TicketsPage() {
       </AnimatePresence>
 
       {/* Header */}
-      
       <motion.div
         className="flex justify-between items-center"
         initial={{ opacity: 0, x: -20 }}
         animate={{ opacity: 1, x: 0 }}
         transition={{ duration: 0.3, delay: 0.1 }}
       >
-        
         <div>
           <h1 className="text-3xl font-bold">Tickets</h1>
           <div className="flex items-center gap-2 mt-2">
@@ -300,8 +319,6 @@ export default function TicketsPage() {
         </motion.div>
       </motion.div>
 
-      
-
       {/* Quick Search */}
       <motion.div
         className="card"
@@ -346,124 +363,37 @@ export default function TicketsPage() {
             animate={{ opacity: 1, height: "auto" }}
             exit={{ opacity: 0, height: 0 }}
             transition={{ duration: 0.2 }}
-            className="overflow-hidden"
+            className="overflow-hidden card"
           >
-            <TicketFilters filters={filters} onFiltersChange={handleFilterChange} />
+            <TicketFilters filters={filters} onChange={handleFilterChange} />
           </motion.div>
         )}
       </AnimatePresence>
 
-      {/* Empty State */}
-      {!isLoading && filteredTickets.length === 0 && (
-        <motion.div 
-          className="card text-center py-12"
-          initial={{ opacity: 0, scale: 0.95 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ duration: 0.3, delay: 0.3 }}
-        >
-          <TicketIcon className="w-12 h-12 text-neutral-400 mx-auto mb-4" />
-          <h3 className="text-lg font-semibold text-neutral-800 mb-2">
-            {hasActiveFilters ? "Nessun ticket trovato" : "Nessun ticket ancora"}
-          </h3>
-          <p className="text-neutral-600 mb-4">
-            {hasActiveFilters
-              ? "Prova a modificare i filtri di ricerca"
-              : "Crea il tuo primo ticket per iniziare"}
-          </p>
-          {canCreateTickets() && (
-            <Link href="/dashboard/create-ticket">
-              <motion.div
-                className="btn-primary inline-flex items-center gap-2"
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
-              >
-                <Plus className="w-4 h-4" />
-                Crea Primo Ticket
-              </motion.div>
-            </Link>
+      {/* Tabs */}
+      <Tabs value={activeTab} onValueChange={handleTabChange}>
+        <TabsList>
+          <TabsTrigger value="table" className="flex items-center gap-1">
+            <List className="w-4 h-4" /> Tabella
+          </TabsTrigger>
+          <TabsTrigger value="kanban" className="flex items-center gap-1">
+            <LayoutGrid className="w-4 h-4" /> Kanban
+          </TabsTrigger>
+          {canManageSettings() && (
+            <TabsTrigger value="status">
+              <StatusManagement />
+            </TabsTrigger>
           )}
-        </motion.div>
-      )}
+        </TabsList>
 
-      {/* Main Content */}
-      {!isLoading && filteredTickets.length > 0 && (
-        <motion.div
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.3, delay: 0.3 }}
-        >
-          <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
-            <div className="flex items-center justify-between mb-6">
-              <TabsList className="grid w-full grid-cols-2 max-w-md bg-muted p-1">
-                <TabsTrigger value="table" className="flex items-center gap-2 data-[state=active]:bg-background">
-                  <List className="w-4 h-4" />
-                  Vista tabella
-                </TabsTrigger>
-                <TabsTrigger value="kanban" className="flex items-center gap-2 data-[state=active]:bg-background">
-                  <LayoutGrid className="w-4 h-4" />
-                  Vista Kanban
-                </TabsTrigger>
-              </TabsList>
+        <TabsContent value="table">
+          <TicketTable tickets={filteredTickets} />
+        </TabsContent>
 
-              {/* Status Management - Solo per admin nella vista Kanban */}
-              {(canManageSettings() || profile?.role === "administrator") && activeTab === "kanban" && (
-                <StatusManagement />
-              )}
-            </div>
-
-            <TabsContent value="table" className="space-y-4">
-              <AnimatePresence mode="wait">
-                {activeTab === "table" && (
-                  <motion.div
-                    key="table-view"
-                    initial={{ opacity: 0, x: -20 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    exit={{ opacity: 0, x: 20 }}
-                    transition={{ duration: 0.2 }}
-                  >
-                    <TicketTable tickets={filteredTickets} />
-                  </motion.div>
-                )}
-              </AnimatePresence>
-            </TabsContent>
-
-            <TabsContent value="kanban" className="space-y-4">
-              <AnimatePresence mode="wait">
-                {activeTab === "kanban" && (
-                  <motion.div
-                    key="kanban-view"
-                    initial={{ opacity: 0, x: 20 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    exit={{ opacity: 0, x: -20 }}
-                    transition={{ duration: 0.2 }}
-                  >
-                    {/* ✅ Passa i ticket come props per evitare re-fetch nel KanbanBoard */}
-                    <KanbanBoard 
-                      tickets={filteredTickets} 
-                      onTicketUpdate={handleTicketUpdate}
-                    />
-                  </motion.div>
-                )}
-              </AnimatePresence>
-            </TabsContent>
-          </Tabs>
-        </motion.div>
-      )}
-
-      {/* Loading overlay per refresh */}
-      {isLoading && tickets.length > 0 && (
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          className="fixed inset-0 bg-black/10 backdrop-blur-sm flex items-center justify-center z-50"
-        >
-          <div className="bg-white rounded-lg shadow-lg p-6 flex items-center gap-3">
-            <Loader2 className="w-5 h-5 animate-spin text-primary" />
-            <span className="text-neutral-700">Aggiornamento in corso...</span>
-          </div>
-        </motion.div>
-      )}
+        <TabsContent value="kanban">
+          <KanbanBoard tickets={filteredTickets} onUpdate={handleTicketUpdate} />
+        </TabsContent>
+      </Tabs>
     </motion.div>
   )
 }

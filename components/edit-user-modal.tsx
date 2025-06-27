@@ -1,12 +1,16 @@
 "use client"
 
-import type React from "react"
-
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useUsers } from "@/hooks/use-users"
 import { usePermissions } from "@/hooks/use-permissions"
 import { X, Trash2 } from "lucide-react"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
 import type { User } from "@/types"
 
 interface EditUserModalProps {
@@ -23,6 +27,21 @@ export function EditUserModal({ user, onClose }: EditUserModalProps) {
     role: user.role,
   })
 
+  const [projects, setProjects] = useState<any[]>([])
+  const [selectedProject, setSelectedProject] = useState<string>("")
+  const [inviteStatus, setInviteStatus] = useState<string | null>(null)
+
+  useEffect(() => {
+    const fetchProjects = async () => {
+      const res = await fetch("/api/projects")
+      const json = await res.json()
+      if (json.success) {
+        setProjects(json.data)
+      }
+    }
+    fetchProjects()
+  }, [])
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
     if (canEditUsers()) {
@@ -35,6 +54,25 @@ export function EditUserModal({ user, onClose }: EditUserModalProps) {
     if (canDeleteUsers() && confirm(`Are you sure you want to delete ${user.name}? This action cannot be undone.`)) {
       deleteUser(user.id)
       onClose()
+    }
+  }
+
+  const handleInvite = async () => {
+    try {
+      const res = await fetch("/api/invite", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: user.email, projectId: selectedProject }),
+      })
+      const result = await res.json()
+      if (result.success) {
+        setInviteStatus("Invito inviato con successo")
+      } else {
+        setInviteStatus(result.message || "Errore durante l'invio")
+      }
+    } catch (err) {
+      console.error(err)
+      setInviteStatus("Errore di rete")
     }
   }
 
@@ -98,6 +136,30 @@ export function EditUserModal({ user, onClose }: EditUserModalProps) {
                 <SelectItem value="admin">Admin</SelectItem>
               </SelectContent>
             </Select>
+          </div>
+
+          <div className="pt-6">
+            <h3 className="text-sm font-semibold mb-2">Invita utente a un progetto</h3>
+            <Select value={selectedProject} onValueChange={(value) => setSelectedProject(value)}>
+              <SelectTrigger>
+                <SelectValue placeholder="Seleziona un progetto" />
+              </SelectTrigger>
+              <SelectContent>
+                {projects.map((project) => (
+                  <SelectItem key={project.id} value={project.id}>
+                    {project.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <button
+              type="button"
+              onClick={handleInvite}
+              className="btn-primary w-full mt-2"
+            >
+              Invia invito
+            </button>
+            {inviteStatus && <p className="text-sm text-neutral-600 mt-2">{inviteStatus}</p>}
           </div>
 
           <div className="flex gap-3 pt-4">

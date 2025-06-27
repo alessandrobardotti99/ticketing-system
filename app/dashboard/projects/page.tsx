@@ -2,6 +2,7 @@
 
 import { useState } from "react"
 import { useProjects } from "@/hooks/use-projects"
+import { useAuthorizedProjects } from "@/hooks/use-authorized-projects"
 import { usePermissions } from "@/hooks/use-permissions"
 import { Plus, FolderOpen, Calendar, Users, MoreHorizontal, Search, Filter, Loader2, AlertCircle } from "lucide-react"
 import { formatDate } from "@/lib/utils"
@@ -18,6 +19,12 @@ export default function ProjectsPage() {
     setFilters,
     refreshProjects 
   } = useProjects()
+  
+  // Hook per verificare i progetti autorizzati
+  // Aggiungi un controllo di sicurezza per evitare array undefined
+  const safeFilteredProjects = filteredProjects || []
+  const { authorizedIds, loading: authLoading } = useAuthorizedProjects(safeFilteredProjects)
+  
   const { canCreateTickets } = usePermissions()
   const [showFilters, setShowFilters] = useState(false)
 
@@ -25,8 +32,13 @@ export default function ProjectsPage() {
     setFilters({ ...filters, [key]: value === "all" ? "" : value })
   }
 
-  // Loading state
-  if (isLoading) {
+  // Filtra i progetti per mostrare solo quelli autorizzati
+  const authorizedProjects = filteredProjects.filter(project => 
+    authorizedIds.includes(project.id)
+  )
+
+  // Loading state - include anche il caricamento delle autorizzazioni
+  if (isLoading || authLoading) {
     return (
       <div className="space-y-6">
         <div className="flex justify-between items-center">
@@ -39,7 +51,9 @@ export default function ProjectsPage() {
         <div className="flex items-center justify-center py-12">
           <div className="flex items-center gap-3">
             <Loader2 className="w-6 h-6 animate-spin text-primary" />
-            <span className="text-neutral-600">Caricamento progetti...</span>
+            <span className="text-neutral-600">
+              {isLoading ? "Caricamento progetti..." : "Verifica autorizzazioni..."}
+            </span>
           </div>
         </div>
       </div>
@@ -89,7 +103,7 @@ export default function ProjectsPage() {
         <div>
           <h1 className="text-3xl font-bold">Projects</h1>
           <p className="text-neutral-600 mt-2">
-            Organize your work into projects • {filteredProjects.length} progetti trovati
+            Organize your work into projects • {authorizedProjects.length} progetti autorizzati
           </p>
         </div>
         {canCreateTickets() && (
@@ -173,14 +187,14 @@ export default function ProjectsPage() {
 
       {/* Projects Grid */}
       <AnimatePresence>
-        {filteredProjects.length > 0 ? (
+        {authorizedProjects.length > 0 ? (
           <motion.div 
             className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ duration: 0.3, delay: 0.3 }}
           >
-            {filteredProjects.map((project, index) => (
+            {authorizedProjects.map((project, index) => (
               <motion.div
                 key={project.id}
                 initial={{ opacity: 0, y: 20 }}
@@ -275,13 +289,21 @@ export default function ProjectsPage() {
             transition={{ duration: 0.3, delay: 0.3 }}
           >
             <FolderOpen className="w-12 h-12 text-neutral-400 mx-auto mb-4" />
-            <h3 className="text-lg font-semibold text-neutral-800 mb-2">Nessun progetto trovato</h3>
+            <h3 className="text-lg font-semibold text-neutral-800 mb-2">
+              {filteredProjects.length === 0 
+                ? "Nessun progetto trovato" 
+                : "Nessun progetto autorizzato"
+              }
+            </h3>
             <p className="text-neutral-600 mb-4">
-              {filters.search || filters.status
-                ? "Prova a modificare i filtri di ricerca"
-                : "Crea il tuo primo progetto per iniziare"}
+              {filteredProjects.length === 0 
+                ? (filters.search || filters.status
+                    ? "Prova a modificare i filtri di ricerca"
+                    : "Crea il tuo primo progetto per iniziare")
+                : "Non hai accesso ai progetti disponibili"
+              }
             </p>
-            {canCreateTickets() && (
+            {canCreateTickets() && filteredProjects.length === 0 && (
               <Link href="/dashboard/projects/new">
                 <motion.div
                   className="btn-primary inline-flex items-center gap-2"

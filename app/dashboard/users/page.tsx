@@ -31,8 +31,8 @@ export default function UsersPage() {
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-3xl font-bold">Users</h1>
-          <p className="text-neutral-600 mt-2">Manage team members and staff</p>
+          <h1 className="text-3xl font-bold">Utenti</h1>
+          <p className="text-neutral-600 mt-2">Gestisci i membri del team e il personale</p>
         </div>
         {canCreateUsers() && (
           <button onClick={() => setShowCreateModal(true)} className="btn-primary flex items-center gap-2">
