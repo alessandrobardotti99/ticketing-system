@@ -9,7 +9,7 @@ import { useProfile } from "@/hooks/use-profile"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Plus, Search, LayoutGrid, List, Filter, Loader2, AlertCircle, TicketIcon } from "lucide-react"
 import Link from "next/link"
-import { useState, useEffect, useMemo } from "react"
+import { useState, useEffect, useMemo, useCallback } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 
 // Interfaccia per i ticket
@@ -37,6 +37,7 @@ export default function TicketsPage() {
   const [error, setError] = useState<string | null>(null)
   const [activeTab, setActiveTab] = useState("table")
   const [showFilters, setShowFilters] = useState(false)
+  const [hasKanbanChanges, setHasKanbanChanges] = useState(false) // ✅ Traccia se ci sono stati cambiamenti nel Kanban
   const [filters, setFilters] = useState({
     status: "",
     priority: "",
@@ -46,13 +47,7 @@ export default function TicketsPage() {
   })
 
   // ✅ Fetch tickets dall'API
-  useEffect(() => {
-    if (profile) {
-      fetchTickets()
-    }
-  }, [profile, filters])
-
-  const fetchTickets = async () => {
+  const fetchTickets = useCallback(async () => {
     try {
       setIsLoading(true)
       setError(null)
@@ -87,7 +82,14 @@ export default function TicketsPage() {
     } finally {
       setIsLoading(false)
     }
-  }
+  }, [filters])
+
+  // ✅ Carica tickets solo quando cambia il profilo o i filtri, NON quando cambia tab
+  useEffect(() => {
+    if (profile) {
+      fetchTickets()
+    }
+  }, [profile, fetchTickets])
 
   // ✅ Filtri applicati lato client per compatibilità con componenti esistenti
   const filteredTickets = useMemo(() => {
@@ -112,13 +114,43 @@ export default function TicketsPage() {
     setFilters(newFilters)
   }
 
+  // ✅ Handler per cambio tab (con smart re-fetch)
+  const handleTabChange = async (value: string) => {
+    const previousTab = activeTab
+    console.log(`🔄 Cambio tab da "${previousTab}" a "${value}"`)
+    
+    // Se veniamo dal Kanban e andiamo alla tabella, e ci sono stati cambiamenti, fai refresh
+    if (previousTab === "kanban" && value === "table" && hasKanbanChanges) {
+      console.log("🔄 Refresh necessario: vengo dal Kanban con cambiamenti -> Tabella")
+      setActiveTab(value)
+      await fetchTickets()
+      setHasKanbanChanges(false) // Reset del flag
+    } else {
+      console.log("🔄 Cambio tab senza refresh - nessun cambiamento rilevato")
+      setActiveTab(value)
+    }
+  }
+
   // ✅ Refresh manuale
   const handleRefresh = () => {
+    console.log("🔄 Refresh manuale tickets")
+    setHasKanbanChanges(false) // Reset del flag
     fetchTickets()
   }
 
+  // ✅ Callback per aggiornamenti dal KanbanBoard
+  const handleTicketUpdate = useCallback((updatedTicket: TicketData) => {
+    console.log("🔄 Aggiornamento ticket dal Kanban:", updatedTicket.id)
+    setHasKanbanChanges(true) // ✅ Marca che ci sono stati cambiamenti nel Kanban
+    setTickets(prev => 
+      prev.map(ticket => 
+        ticket.id === updatedTicket.id ? updatedTicket : ticket
+      )
+    )
+  }, [])
+
   // ✅ Loading state
-  if (isLoading && !error) {
+  if (isLoading && tickets.length === 0) {
     return (
       <motion.div
         className="space-y-6"
@@ -240,7 +272,7 @@ export default function TicketsPage() {
         >
           <button
             onClick={() => setShowFilters(!showFilters)}
-            className={`btn-secondary flex items-center gap-2 ${hasActiveFilters ? "bg-primary/10 border-primary/20" : ""}`}
+            className={`btn-secondary bg-white flex items-center gap-2 ${hasActiveFilters ? "bg-primary/10 border-primary/20" : ""}`}
           >
             <Filter className="w-4 h-4" />
             Filtri
@@ -259,7 +291,7 @@ export default function TicketsPage() {
                 whileTap={{ scale: 0.98 }}
               >
                 <Plus className="w-4 h-4" />
-                Nuovo Ticket
+                Nuovo ticket
               </motion.div>
             </Link>
           )}
@@ -356,12 +388,12 @@ export default function TicketsPage() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.3, delay: 0.3 }}
         >
-          <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+          <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
             <div className="flex items-center justify-between mb-6">
               <TabsList className="grid w-full grid-cols-2 max-w-md bg-muted p-1">
                 <TabsTrigger value="table" className="flex items-center gap-2 data-[state=active]:bg-background">
                   <List className="w-4 h-4" />
-                  Vista Tabella
+                  Vista tabella
                 </TabsTrigger>
                 <TabsTrigger value="kanban" className="flex items-center gap-2 data-[state=active]:bg-background">
                   <LayoutGrid className="w-4 h-4" />
@@ -401,7 +433,11 @@ export default function TicketsPage() {
                     exit={{ opacity: 0, x: -20 }}
                     transition={{ duration: 0.2 }}
                   >
-                    <KanbanBoard tickets={filteredTickets} />
+                    {/* ✅ Passa i ticket come props per evitare re-fetch nel KanbanBoard */}
+                    <KanbanBoard 
+                      tickets={filteredTickets} 
+                      onTicketUpdate={handleTicketUpdate}
+                    />
                   </motion.div>
                 )}
               </AnimatePresence>

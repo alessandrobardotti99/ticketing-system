@@ -84,7 +84,7 @@ export function Sidebar() {
       className="w-[17rem] bg-card border-r border-border min-h-screen shadow-sm flex flex-col"
     >
        <div className="flex items-center justify-start px-4 mt-4 pb-4 border-b border-neutral-200">
-                              <Image src={"/logo.svg"} alt="logo" width={150} height={150}></Image>
+                              <Image src={"/logo.svg"} alt="logo" width={130} height={130}></Image>
                           </div>
       <nav className="p-4 space-y-1 flex-1">
         {navigation.map((item, index) => {

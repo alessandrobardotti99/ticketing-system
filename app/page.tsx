@@ -24,9 +24,48 @@ import {
 } from "lucide-react"
 import Link from "next/link"
 import { motion } from "framer-motion"
-import { useState } from "react"
+import { useState, useEffect } from "react"
+
+interface UserProfile {
+  id: string
+  name: string
+  email: string
+  role: string
+  emailVerified: boolean
+  image: string | null
+  createdAt: string
+  updatedAt: string
+  bio: string
+  phone: string
+  location: string
+  timezone: string
+}
 
 export default function HomePage() {
+  const [user, setUser] = useState<UserProfile | null>(null)
+  const [isLoading, setIsLoading] = useState(true)
+
+  // Verifica la sessione utente al caricamento del componente
+  useEffect(() => {
+    const checkUserSession = async () => {
+      try {
+        const response = await fetch('/api/user/profile')
+        if (response.ok) {
+          const data = await response.json()
+          if (data.success) {
+            setUser(data.data)
+          }
+        }
+      } catch (error) {
+        console.error('Errore nel verificare la sessione:', error)
+      } finally {
+        setIsLoading(false)
+      }
+    }
+
+    checkUserSession()
+  }, [])
+
   const features = [
     {
       icon: <Ticket className="w-8 h-8" />,
@@ -207,9 +246,24 @@ export default function HomePage() {
             </nav>
             <div className="flex items-center gap-4">
               <ThemeToggle />
-              <Button asChild>
-                <Link href="/login">Inizia Gratis</Link>
-              </Button>
+              {!isLoading && (
+                <>
+                  {user ? (
+                    <div className="flex items-center gap-3">
+                      <span className="text-sm text-muted-foreground hidden sm:inline">
+                        Ciao, {user.name.split(' ')[0]}!
+                      </span>
+                      <Button asChild>
+                        <Link href="/dashboard">Dashboard</Link>
+                      </Button>
+                    </div>
+                  ) : (
+                    <Button asChild>
+                      <Link href="/login">Inizia Gratis</Link>
+                    </Button>
+                  )}
+                </>
+              )}
             </div>
           </div>
         </div>
@@ -237,11 +291,23 @@ export default function HomePage() {
             sempre. Nessun costo nascosto, nessuna scadenza.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center mb-12">
-            <Button size="lg" asChild className="text-lg px-8">
-              <Link href="/login">
-                Inizia Subito Gratis <ArrowRight className="ml-2 w-5 h-5" />
-              </Link>
-            </Button>
+            {!isLoading && (
+              <>
+                {user ? (
+                  <Button size="lg" asChild className="text-lg px-8">
+                    <Link href="/dashboard">
+                      Vai alla Dashboard <ArrowRight className="ml-2 w-5 h-5" />
+                    </Link>
+                  </Button>
+                ) : (
+                  <Button size="lg" asChild className="text-lg px-8">
+                    <Link href="/login">
+                      Inizia Subito Gratis <ArrowRight className="ml-2 w-5 h-5" />
+                    </Link>
+                  </Button>
+                )}
+              </>
+            )}
             <Button size="lg" variant="outline" asChild className="text-lg px-8">
               <Link href="#features">Scopri le Funzionalità</Link>
             </Button>
@@ -449,15 +515,31 @@ export default function HomePage() {
           <div className="w-20 h-20 bg-gradient-to-r from-primary to-primary/60 rounded-full flex items-center justify-center mx-auto mb-6">
             <Gift className="w-10 h-10 text-white" />
           </div>
-          <h2 className="text-3xl md:text-4xl font-bold mb-4">Inizia Subito, È Completamente Gratuito!</h2>
-          <p className="text-xl text-muted-foreground mb-8">
-            Nessuna carta di credito richiesta. Nessun limite di tempo. Tutte le funzionalità incluse.
-          </p>
-          <Button size="lg" asChild className="text-lg px-8">
-            <Link href="/login">
-              Accedi Ora Gratis <ArrowRight className="ml-2 w-5 h-5" />
-            </Link>
-          </Button>
+          {user ? (
+            <>
+              <h2 className="text-3xl md:text-4xl font-bold mb-4">Bentornato, {user.name.split(' ')[0]}!</h2>
+              <p className="text-xl text-muted-foreground mb-8">
+                Accedi alla tua dashboard per gestire i tuoi ticket e progetti.
+              </p>
+              <Button size="lg" asChild className="text-lg px-8">
+                <Link href="/dashboard">
+                  Vai alla Dashboard <ArrowRight className="ml-2 w-5 h-5" />
+                </Link>
+              </Button>
+            </>
+          ) : (
+            <>
+              <h2 className="text-3xl md:text-4xl font-bold mb-4">Inizia Subito, È Completamente Gratuito!</h2>
+              <p className="text-xl text-muted-foreground mb-8">
+                Nessuna carta di credito richiesta. Nessun limite di tempo. Tutte le funzionalità incluse.
+              </p>
+              <Button size="lg" asChild className="text-lg px-8">
+                <Link href="/login">
+                  Accedi Ora Gratis <ArrowRight className="ml-2 w-5 h-5" />
+                </Link>
+              </Button>
+            </>
+          )}
           <p className="text-sm text-muted-foreground mt-4">Setup in 30 secondi • Nessuna configurazione complessa</p>
         </motion.div>
       </section>
