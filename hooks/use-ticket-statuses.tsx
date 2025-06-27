@@ -7,7 +7,6 @@ export interface TicketStatus {
   label: string
   color: string
   order: number
-  project?: string | null
 }
 
 const defaultStatuses: TicketStatus[] = [
