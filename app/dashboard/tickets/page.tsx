@@ -237,12 +237,14 @@ export default function TicketsPage() {
       </AnimatePresence>
 
       {/* Header */}
+      
       <motion.div
         className="flex justify-between items-center"
         initial={{ opacity: 0, x: -20 }}
         animate={{ opacity: 1, x: 0 }}
         transition={{ duration: 0.3, delay: 0.1 }}
       >
+        
         <div>
           <h1 className="text-3xl font-bold">Tickets</h1>
           <div className="flex items-center gap-2 mt-2">
@@ -297,6 +299,8 @@ export default function TicketsPage() {
           )}
         </motion.div>
       </motion.div>
+
+      
 
       {/* Quick Search */}
       <motion.div

@@ -5,7 +5,7 @@ import { useState, useEffect } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { useProjects } from "@/hooks/use-projects"
 import { usePermissions } from "@/hooks/use-permissions"
-import { ArrowLeft, Ticket, Shield, Plus, Loader2, CheckCircle, AlertCircle, Tag } from "lucide-react"
+import { ArrowLeft, Ticket, Shield, Plus, Loader2, CheckCircle, AlertCircle, Tag, Users } from "lucide-react"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { motion, AnimatePresence } from "framer-motion"
 
@@ -14,6 +14,15 @@ interface TicketStatus {
   label: string
   color: string
   order: number
+}
+
+interface User {
+  id: string
+  name: string
+  email: string
+  role: string
+  image: string | null
+  emailVerified: boolean
 }
 
 export default function CreateTicketPage() {
@@ -38,12 +47,17 @@ export default function CreateTicketPage() {
   const [newStatusName, setNewStatusName] = useState("")
   const [isCreatingStatus, setIsCreatingStatus] = useState(false)
   
+  // ✅ NUOVO: Stati per gestione utenti
+  const [users, setUsers] = useState<User[]>([])
+  const [isLoadingUsers, setIsLoadingUsers] = useState(true)
+  
   const [formData, setFormData] = useState({
     title: "",
     description: "",
     priority: "medium" as const,
     projectId: projectId || "",
-    statusId: "", // Nuovo campo per lo status
+    statusId: "", // Campo per lo status
+    assigneeId: "", // ✅ NUOVO: Campo per l'assignee
     dueDate: "",
   })
 
@@ -61,6 +75,41 @@ export default function CreateTicketPage() {
   useEffect(() => {
     fetchStatuses()
   }, [formData.projectId])
+
+  // ✅ NUOVO: Carica utenti all'avvio
+  useEffect(() => {
+    fetchUsers()
+  }, [])
+
+  // ✅ NUOVO: Fetch degli utenti disponibili
+  const fetchUsers = async () => {
+    try {
+      setIsLoadingUsers(true)
+      console.log("📡 Fetching users per assignee...")
+
+      const response = await fetch("/api/users")
+      
+      if (!response.ok) {
+        throw new Error("Errore nel caricamento degli utenti")
+      }
+
+      const data = await response.json()
+      
+      if (data.success) {
+        setUsers(data.data)
+        console.log(`✅ Caricati ${data.data.length} utenti`)
+      } else {
+        throw new Error(data.error || "Errore sconosciuto")
+      }
+
+    } catch (err) {
+      console.error("❌ Errore fetch users:", err)
+      // In caso di errore, permetti comunque la creazione del ticket
+      setUsers([])
+    } finally {
+      setIsLoadingUsers(false)
+    }
+  }
 
   // ✅ Fetch degli status disponibili
   const fetchStatuses = async () => {
@@ -173,7 +222,7 @@ export default function CreateTicketPage() {
     )
   }
 
-  // ✅ Gestione submit con API (aggiornata per status)
+  // ✅ Gestione submit con API (aggiornata per assignee)
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsLoading(true)
@@ -220,7 +269,8 @@ export default function CreateTicketPage() {
           description: formData.description.trim(),
           priority: formData.priority,
           projectId: formData.projectId || null,
-          statusId: finalStatusId, // Usa il nuovo campo statusId
+          statusId: finalStatusId,
+          assigneeId: formData.assigneeId || null, // ✅ NUOVO: Includi assigneeId
           dueDate: formData.dueDate || null,
         }),
       })
@@ -286,9 +336,29 @@ export default function CreateTicketPage() {
     }
   }
 
-  // Ottieni nome progetto selezionato
+  // Ottieni dati selezionati
   const selectedProject = projects.find(p => p.id === formData.projectId)
   const selectedStatus = statuses.find(s => s.id === formData.statusId)
+  const selectedAssignee = users.find(u => u.id === formData.assigneeId)
+
+  // ✅ Helper per mostrare ruolo utente con colori
+  const getRoleColor = (role: string) => {
+    switch (role) {
+      case 'administrator': return 'text-red-600'
+      case 'manager': return 'text-blue-600'
+      case 'user': return 'text-green-600'
+      default: return 'text-gray-600'
+    }
+  }
+
+  const getRoleLabel = (role: string) => {
+    switch (role) {
+      case 'administrator': return 'Admin'
+      case 'manager': return 'Manager'
+      case 'user': return 'User'
+      default: return role
+    }
+  }
 
   return (
     <motion.div
@@ -471,6 +541,87 @@ export default function CreateTicketPage() {
             </div>
           </div>
 
+          {/* ✅ NUOVO: Selezione Assignee */}
+          <div>
+            <label className="block text-sm font-medium mb-2">Assegna a</label>
+            {isLoadingUsers ? (
+              <div className="flex items-center gap-2 p-3 border border-neutral-300 rounded-lg">
+                <Loader2 className="w-4 h-4 animate-spin" />
+                <span className="text-sm text-neutral-600">Caricamento utenti...</span>
+              </div>
+            ) : (
+              <Select
+                value={formData.assigneeId || "none"}
+                onValueChange={(value) => setFormData({ ...formData, assigneeId: value === "none" ? "" : value })}
+                disabled={isLoading}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Seleziona utente (opzionale)" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">
+                    <div className="flex items-center gap-2">
+                      <Users className="w-4 h-4 text-gray-400" />
+                      Non assegnato
+                    </div>
+                  </SelectItem>
+                  {users.map((user) => (
+                    <SelectItem key={user.id} value={user.id}>
+                      <div className="flex items-center gap-3">
+                        {user.image ? (
+                          <img 
+                            src={user.image} 
+                            alt={user.name}
+                            className="w-6 h-6 rounded-full"
+                          />
+                        ) : (
+                          <div className="w-6 h-6 rounded-full bg-gray-300 flex items-center justify-center">
+                            <span className="text-xs font-medium text-gray-600">
+                              {user.name.charAt(0).toUpperCase()}
+                            </span>
+                          </div>
+                        )}
+                        <div className="flex flex-col">
+                          <span className="font-medium">{user.name}</span>
+                          <span className={`text-xs ${getRoleColor(user.role)}`}>
+                            {getRoleLabel(user.role)} {!user.emailVerified && "• Non verificato"}
+                          </span>
+                        </div>
+                      </div>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
+            
+            {/* Anteprima assignee selezionato */}
+            {selectedAssignee && (
+              <div className="mt-2 p-2 bg-blue-50 border border-blue-200 rounded-lg">
+                <div className="flex items-center gap-3">
+                  {selectedAssignee.image ? (
+                    <img 
+                      src={selectedAssignee.image} 
+                      alt={selectedAssignee.name}
+                      className="w-8 h-8 rounded-full"
+                    />
+                  ) : (
+                    <div className="w-8 h-8 rounded-full bg-blue-200 flex items-center justify-center">
+                      <span className="text-sm font-medium text-blue-700">
+                        {selectedAssignee.name.charAt(0).toUpperCase()}
+                      </span>
+                    </div>
+                  )}
+                  <div>
+                    <p className="text-sm font-medium text-blue-800">{selectedAssignee.name}</p>
+                    <p className="text-xs text-blue-600">
+                      {selectedAssignee.email} • {getRoleLabel(selectedAssignee.role)}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+
           {/* Progetto con creazione al volo */}
           <div>
             <label className="block text-sm font-medium mb-2">Progetto</label>
@@ -564,7 +715,7 @@ export default function CreateTicketPage() {
             </AnimatePresence>
           </div>
 
-          {/* ✅ NUOVO: Selezione Status */}
+          {/* Selezione Status */}
           <div>
             <label className="block text-sm font-medium mb-2">Status Iniziale</label>
             <div className="flex gap-2">
