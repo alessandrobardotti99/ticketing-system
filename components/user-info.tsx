@@ -7,6 +7,7 @@ import { User, Settings, LogOut, ChevronUp, Shield } from "lucide-react"
 import { UserProfile } from "@/hooks/use-profile"
 import { getRoleDisplayName } from "@/db/schema"
 import { useRouter } from "next/navigation"
+import { authClient } from "@/lib/auth-client";
 
 interface UserInfoProps {
   profile: UserProfile
@@ -17,18 +18,8 @@ export function UserInfo({ profile }: UserInfoProps) {
   const router = useRouter()
 
   const handleSignOut = async () => {
-    try {
-      // Chiamata all'API di logout
-      const response = await fetch("/api/auth/signout", {
-        method: "POST",
-      })
-      
-      if (response.ok) {
-        router.push("/login")
-      }
-    } catch (error) {
-      console.error("Errore durante il logout:", error)
-    }
+     await authClient.signOut();
+    router.push("/");
   }
 
   const getInitials = (name: string) => {
