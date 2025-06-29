@@ -63,7 +63,7 @@ export function KanbanBoard({ tickets: externalTickets, onTicketUpdate }: Kanban
   const [tickets, setTickets] = useState<TicketData[]>(externalTickets || [])
   const [statuses, setStatuses] = useState<TicketStatus[]>([])
   const [isLoading, setIsLoading] = useState(!externalTickets)
-  const [isStatusesLoading, setIsStatusesLoading] = useState(true) // ✅ Stato separato per il caricamento status
+  const [isStatusesLoading, setIsStatusesLoading] = useState(true)
   const [isUpdating, setIsUpdating] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [activeTicket, setActiveTicket] = useState<TicketData | null>(null)
@@ -71,6 +71,7 @@ export function KanbanBoard({ tickets: externalTickets, onTicketUpdate }: Kanban
   const [startX, setStartX] = useState(0)
   const [scrollLeft, setScrollLeft] = useState(0)
   const scrollContainerRef = useRef<HTMLDivElement>(null)
+  const [containerWidth, setContainerWidth] = useState(0)
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -82,6 +83,83 @@ export function KanbanBoard({ tickets: externalTickets, onTicketUpdate }: Kanban
     }),
     useSensor(KeyboardSensor),
   )
+
+  // ✅ Misurazione del container - IMPROVED
+  useEffect(() => {
+    const measureContainer = () => {
+      if (scrollContainerRef.current) {
+        // Usa getBoundingClientRect per ottenere la larghezza effettiva
+        const rect = scrollContainerRef.current.getBoundingClientRect()
+        const width = Math.floor(rect.width)
+        
+        // Solo aggiorna se c'è una differenza significativa (> 10px)
+        if (Math.abs(width - containerWidth) > 10) {
+          setContainerWidth(width)
+          console.log(`📏 Container width aggiornata: ${containerWidth}px -> ${width}px`)
+        }
+      }
+    }
+
+    // Misura immediatamente
+    measureContainer()
+    
+    // ResizeObserver per monitoraggio più preciso
+    let resizeObserver: ResizeObserver | null = null
+    if (scrollContainerRef.current && window.ResizeObserver) {
+      resizeObserver = new ResizeObserver((entries) => {
+        for (const entry of entries) {
+          const width = Math.floor(entry.contentRect.width)
+          if (Math.abs(width - containerWidth) > 10) {
+            setContainerWidth(width)
+            console.log(`📏 ResizeObserver: ${containerWidth}px -> ${width}px`)
+          }
+        }
+      })
+      resizeObserver.observe(scrollContainerRef.current)
+    }
+    
+    // Fallback con window resize
+    let resizeTimeout: NodeJS.Timeout
+    const handleResize = () => {
+      clearTimeout(resizeTimeout)
+      resizeTimeout = setTimeout(measureContainer, 50)
+    }
+    
+    window.addEventListener('resize', handleResize)
+    
+    // Misurazioni multiple per essere sicuri
+    const timers = [
+      setTimeout(measureContainer, 100),
+      setTimeout(measureContainer, 300),
+      setTimeout(measureContainer, 500)
+    ]
+    
+    return () => {
+      window.removeEventListener('resize', handleResize)
+      clearTimeout(resizeTimeout)
+      timers.forEach(clearTimeout)
+      if (resizeObserver) {
+        resizeObserver.disconnect()
+      }
+    }
+  }, [containerWidth]) // Dependency su containerWidth per triggering
+
+  // ✅ Ri-misura quando gli status cambiano
+  useEffect(() => {
+    if (statuses.length > 0 && scrollContainerRef.current) {
+      const measureContainer = () => {
+        const rect = scrollContainerRef.current!.getBoundingClientRect()
+        const width = Math.floor(rect.width)
+        if (Math.abs(width - containerWidth) > 5) {
+          setContainerWidth(width)
+          console.log(`📏 Container width dopo status: ${containerWidth}px -> ${width}px`)
+        }
+      }
+      
+      const timer = setTimeout(measureContainer, 50)
+      return () => clearTimeout(timer)
+    }
+  }, [statuses.length, containerWidth])
 
   // ✅ Fetch ticket se non passati tramite props
   useEffect(() => {
@@ -106,6 +184,20 @@ export function KanbanBoard({ tickets: externalTickets, onTicketUpdate }: Kanban
       setTickets(externalTickets)
     }
   }, [externalTickets])
+
+  // ✅ Setup refresh function per StatusManagement
+  useEffect(() => {
+    const refreshStatuses = async () => {
+      console.log("🔄 Aggiornamento status richiesto dalla StatusManagement")
+      await fetchStatuses()
+    }
+
+    window.refreshKanbanStatuses = refreshStatuses
+    
+    return () => {
+      delete window.refreshKanbanStatuses
+    }
+  }, [])
 
   const fetchTickets = async () => {
     try {
@@ -138,58 +230,43 @@ export function KanbanBoard({ tickets: externalTickets, onTicketUpdate }: Kanban
     }
   }
 
-const fetchStatuses = async () => {
-  try {
-    setIsStatusesLoading(true) // ✅ Inizio caricamento status
-    console.log("📡 Fetchando status per Kanban")
+  const fetchStatuses = async () => {
+    try {
+      setIsStatusesLoading(true)
+      console.log("📡 Fetchando status per Kanban")
 
-    const response = await fetch("/api/ticket-statuses")
-    
-    if (!response.ok) {
-      throw new Error("Errore nel caricamento degli status")
+      const response = await fetch("/api/ticket-statuses")
+      
+      if (!response.ok) {
+        throw new Error("Errore nel caricamento degli status")
+      }
+
+      const data = await response.json()
+      
+      if (data.success) {
+        const sortedStatuses = data.data.sort((a: TicketStatus, b: TicketStatus) => a.order - b.order)
+        setStatuses(sortedStatuses)
+        console.log(`✅ Caricati ${sortedStatuses.length} status per Kanban:`)
+        sortedStatuses.forEach((s: TicketStatus) => {
+          console.log(`  📌 ${s.label} (ID: ${s.id}, Ordine: ${s.order})`)
+        })
+      } else {
+        throw new Error(data.error || "Errore sconosciuto")
+      }
+
+    } catch (err) {
+      console.error("❌ Errore fetch status Kanban:", err)
+      // In caso di errore, usa status di default
+      setStatuses([
+        { id: "open", label: "Aperto", color: "#3b82f6", order: 0 },
+        { id: "in-progress", label: "In Corso", color: "#f59e0b", order: 1 },
+        { id: "resolved", label: "Risolto", color: "#10b981", order: 2 },
+        { id: "closed", label: "Chiuso", color: "#6b7280", order: 3 },
+      ])
+    } finally {
+      setIsStatusesLoading(false)
     }
-
-    const data = await response.json()
-    
-    if (data.success) {
-      // Ordina gli status per l'ordine specificato
-      const sortedStatuses = data.data.sort((a: TicketStatus, b: TicketStatus) => a.order - b.order)
-      setStatuses(sortedStatuses)
-      console.log(`✅ Caricati ${sortedStatuses.length} status per Kanban:`)
-      sortedStatuses.forEach((s: TicketStatus) => {
-        console.log(`  📌 ${s.label} (ID: ${s.id}, Ordine: ${s.order})`)
-      })
-    } else {
-      throw new Error(data.error || "Errore sconosciuto")
-    }
-
-  } catch (err) {
-    console.error("❌ Errore fetch status Kanban:", err)
-    // In caso di errore, usa status di default
-    setStatuses([
-      { id: "open", label: "Aperto", color: "#3b82f6", order: 0 },
-      { id: "in-progress", label: "In Corso", color: "#f59e0b", order: 1 },
-      { id: "resolved", label: "Risolto", color: "#10b981", order: 2 },
-      { id: "closed", label: "Chiuso", color: "#6b7280", order: 3 },
-    ])
-  } finally {
-    setIsStatusesLoading(false) // ✅ Fine caricamento status
   }
-}
-
-const refreshStatuses = async () => {
-  console.log("🔄 Aggiornamento status richiesto dalla StatusManagement")
-  await fetchStatuses()
-}
-
-useEffect(() => {
-  window.refreshKanbanStatuses = refreshStatuses
-  
-  return () => {
-    delete window.refreshKanbanStatuses
-  }
-}, [])
-
 
   const updateTicket = async (ticketId: string, updates: Partial<TicketData>) => {
     try {
@@ -324,11 +401,20 @@ useEffect(() => {
     return ticketsForStatus
   }
 
-  // Scroll handlers - solo per il container, non per i ticket
+  // Scroll handlers - MIGLIORATI per evitare conflitti con drag & drop
   const handleMouseDown = (e: React.MouseEvent) => {
-    // Non attivare scroll se stiamo cliccando su un ticket
+    // Non attivare scroll se stiamo cliccando su un ticket o elementi interattivi
     const target = e.target as HTMLElement
-    if (target.closest("[data-ticket-id]")) return
+    if (
+      target.closest("[data-ticket-id]") || 
+      target.closest("button") || 
+      target.closest("[draggable]") ||
+      target.closest("[data-rbd-draggable-id]") ||
+      target.closest(".kanban-card") ||
+      target.closest(".kanban-column-header")
+    ) {
+      return
+    }
 
     if (!scrollContainerRef.current) return
     setIsDraggingScroll(true)
@@ -341,7 +427,7 @@ useEffect(() => {
     if (!isDraggingScroll || !scrollContainerRef.current) return
     e.preventDefault()
     const x = e.pageX - scrollContainerRef.current.offsetLeft
-    const walk = (x - startX) * 2
+    const walk = (x - startX) * 1.5 // Velocità di scroll ridotta
     scrollContainerRef.current.scrollLeft = scrollLeft - walk
   }
 
@@ -351,23 +437,48 @@ useEffect(() => {
 
   const scrollToLeft = () => {
     if (scrollContainerRef.current) {
-      scrollContainerRef.current.scrollBy({ left: -300, behavior: "smooth" })
+      scrollContainerRef.current.scrollBy({ left: -TOTAL_COLUMN_WIDTH, behavior: "smooth" })
     }
   }
 
   const scrollToRight = () => {
     if (scrollContainerRef.current) {
-      scrollContainerRef.current.scrollBy({ left: 300, behavior: "smooth" })
+      scrollContainerRef.current.scrollBy({ left: TOTAL_COLUMN_WIDTH, behavior: "smooth" })
     }
   }
 
-  const showScrollControls = statuses.length > 4
+  // ✅ Calcoli reattivi - CORRETTI
+  const COLUMN_WIDTH = 300 // Larghezza della singola colonna
+  const GAP_WIDTH = 24 // Gap tra le colonne (gap-6 = 24px)
+  const TOTAL_COLUMN_WIDTH = COLUMN_WIDTH + GAP_WIDTH // 324px per colonna incluso gap
+  
+  const columnsPerView = containerWidth > 0 ? Math.floor(containerWidth / TOTAL_COLUMN_WIDTH) : 1
+  const needsScrolling = statuses.length > columnsPerView && columnsPerView > 0
+  
+  // Calcolo corretto: (n colonne * larghezza) - ultimo gap
+  const totalContentWidth = statuses.length > 0 
+    ? (statuses.length * COLUMN_WIDTH) + ((statuses.length - 1) * GAP_WIDTH)
+    : 0
+    
+  const showScrollControls = needsScrolling
 
-  // ✅ Loading state con skeleton - mostra skeleton durante caricamento tickets O status
+  console.log(`📊 Debug Layout:`, {
+    containerWidth,
+    columnsPerView,
+    statusCount: statuses.length,
+    needsScrolling,
+    totalContentWidth,
+    showScrollControls,
+    COLUMN_WIDTH,
+    GAP_WIDTH,
+    TOTAL_COLUMN_WIDTH
+  })
+
+  // ✅ Loading state con skeleton
   if (isLoading || isStatusesLoading) {
     return (
       <motion.div 
-        className="relative"
+        className="relative w-full"
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.3 }}
@@ -387,10 +498,9 @@ useEffect(() => {
         </motion.div>
 
         {/* Skeleton Kanban Columns */}
-        <div className="overflow-x-auto">
+        <div className="w-full overflow-hidden">
           <motion.div
             className="flex gap-6 pb-4"
-            style={{ width: "1280px" }} // 4 colonne da 300px + gap
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ duration: 0.3, delay: 0.2 }}
@@ -498,7 +608,7 @@ useEffect(() => {
 
   return (
     <motion.div 
-      className="relative"
+      className="relative w-full max-w-full overflow-hidden" // Aggiunti max-w-full e overflow-hidden
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.3 }}
@@ -532,6 +642,7 @@ useEffect(() => {
         )}
       </AnimatePresence>
 
+      {/* Controlli di scroll */}
       {showScrollControls && (
         <motion.div 
           className="flex justify-between items-center mb-4"
@@ -548,7 +659,7 @@ useEffect(() => {
             </Button>
           </div>
           <div className="text-sm text-muted-foreground">
-            {statuses.length} colonne • Trascina lo sfondo per scorrere
+            {statuses.length} colonne • {columnsPerView > 0 ? `${columnsPerView} visibili` : 'Calcolo...'} • Trascina per scorrere
           </div>
         </motion.div>
       )}
@@ -560,10 +671,11 @@ useEffect(() => {
         onDragEnd={handleDragEnd}
         collisionDetection={closestCenter}
       >
+        {/* ✅ Container scroll - CON ALTEZZA FLESSIBILE */}
         <div
           ref={scrollContainerRef}
-          className={`overflow-x-auto scrollbar-thin scrollbar-thumb-muted scrollbar-track-transparent ${
-            isDraggingScroll ? "cursor-grabbing" : showScrollControls ? "cursor-grab" : ""
+          className={`w-full overflow-x-auto scrollbar-thin scrollbar-thumb-muted scrollbar-track-transparent ${
+            isDraggingScroll ? "cursor-grabbing select-none" : needsScrolling ? "cursor-grab" : ""
           }`}
           onMouseDown={handleMouseDown}
           onMouseMove={handleMouseMove}
@@ -572,12 +684,22 @@ useEffect(() => {
           style={{
             scrollbarWidth: "thin",
             scrollbarColor: "hsl(var(--muted)) transparent",
+            maxWidth: "100%",
+            contain: "layout size style",
+            // Altezza minima che si adatta al contenuto
+            minHeight: "min-content",
+            // Se il parent non ha altezza definita, usa almeno 70vh
+            height: "auto",
+            minHeight: "max(400px, 70vh)", // Il maggiore tra 400px e 70% viewport
           }}
         >
+          {/* ✅ Contenuto interno - larghezza calcolata dinamicamente */}
           <motion.div
             className="flex gap-6 pb-4"
             style={{
-              width: showScrollControls ? `${statuses.length * 320}px` : "100%",
+              // La larghezza è sempre esatta per il contenuto
+              width: `${totalContentWidth}px`,
+              minWidth: `${totalContentWidth}px`,
             }}
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -587,7 +709,11 @@ useEffect(() => {
               <motion.div 
                 key={status.id} 
                 className="flex-shrink-0" 
-                style={{ width: "300px" }}
+                style={{ 
+                  width: "300px",
+                  minWidth: "300px",
+                  maxWidth: "300px"
+                }}
                 initial={{ opacity: 0, x: 20 }}
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ duration: 0.3, delay: 0.3 + index * 0.1 }}

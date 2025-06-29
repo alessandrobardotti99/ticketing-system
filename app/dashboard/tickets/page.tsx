@@ -370,6 +370,10 @@ export default function TicketsPage() {
         )}
       </AnimatePresence>
 
+<div className="absolute right-8">
+       <StatusManagement />
+       </div>
+
       {/* Tabs */}
       <Tabs value={activeTab} onValueChange={handleTabChange}>
         <TabsList>
@@ -377,13 +381,9 @@ export default function TicketsPage() {
             <List className="w-4 h-4" /> Tabella
           </TabsTrigger>
           <TabsTrigger value="kanban" className="flex items-center gap-1">
-            <LayoutGrid className="w-4 h-4" /> Kanban
+            <LayoutGrid className="w-4 h-4" /> Colonne
           </TabsTrigger>
-          {canManageSettings() && (
-            <TabsTrigger value="status">
-              <StatusManagement />
-            </TabsTrigger>
-          )}
+         
         </TabsList>
 
         <TabsContent value="table">
@@ -394,6 +394,7 @@ export default function TicketsPage() {
           <KanbanBoard tickets={filteredTickets} onUpdate={handleTicketUpdate} />
         </TabsContent>
       </Tabs>
+      
     </motion.div>
   )
 }
