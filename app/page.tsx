@@ -5,6 +5,7 @@ import { Card } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { ThemeToggle } from "@/components/theme-toggle"
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
+import Image from "next/image"
 import {
   Ticket,
   Users,
@@ -139,12 +140,6 @@ export default function HomePage() {
     },
   ]
 
-  const stats = [
-    { number: "∞", label: "Ticket Illimitati", icon: <Ticket className="w-5 h-5" /> },
-    { number: "∞", label: "Utenti Illimitati", icon: <Users className="w-5 h-5" /> },
-    { number: "100%", label: "Completamente Gratuito", icon: <Gift className="w-5 h-5" /> },
-    { number: "24/7", label: "Sempre Disponibile", icon: <Globe className="w-5 h-5" /> },
-  ]
 
   const testimonials = [
     {
@@ -222,13 +217,9 @@ export default function HomePage() {
         <div className="container mx-auto px-4 py-4">
           <div className="flex justify-between items-center">
             <div className="flex items-center gap-3">
-              <div className="w-8 h-8 bg-primary flex items-center justify-center rounded">
-                <span className="text-primary-foreground font-bold text-sm">TF</span>
-              </div>
-              <div>
-                <h1 className="text-xl font-bold">Index</h1>
-                <p className="text-xs text-muted-foreground">100% Gratuito • Open Source</p>
-              </div>
+               <div className="flex items-center justify-center">
+                              <Image src={"/logo.svg"} alt="logo" width={150} height={150}></Image>
+                          </div>
             </div>
             <nav className="hidden md:flex items-center gap-6">
               <Link href="#features" className="text-sm hover:text-primary transition-colors">
@@ -314,21 +305,7 @@ export default function HomePage() {
           </div>
 
           {/* Stats */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-8 max-w-3xl mx-auto">
-            {stats.map((stat, index) => (
-              <motion.div
-                key={index}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.6, delay: 0.2 + index * 0.1 }}
-                className="text-center"
-              >
-                <div className="flex justify-center mb-2 text-primary">{stat.icon}</div>
-                <div className="text-2xl md:text-3xl font-bold text-primary">{stat.number}</div>
-                <div className="text-sm text-muted-foreground">{stat.label}</div>
-              </motion.div>
-            ))}
-          </div>
+         
         </motion.div>
       </section>
 
