@@ -51,6 +51,46 @@ export function UserTable({ onEditUser, selectedProjectId }: UserTableProps) {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
+  // ✅ Skeleton Components
+  const UserRowSkeleton = () => (
+    <tr className="animate-pulse">
+      {/* Avatar + Nome */}
+      <td className="px-6 py-4 whitespace-nowrap">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-full bg-neutral-200"></div>
+          <div>
+            <div className="h-4 bg-neutral-200 rounded w-24 mb-1"></div>
+            <div className="h-3 bg-neutral-200 rounded w-16"></div>
+          </div>
+        </div>
+      </td>
+      {/* Email */}
+      <td className="px-6 py-4 whitespace-nowrap">
+        <div className="h-4 bg-neutral-200 rounded w-40 mb-1"></div>
+        <div className="h-3 bg-neutral-200 rounded w-20"></div>
+      </td>
+      {/* Ruolo Sistema */}
+      <td className="px-6 py-4 whitespace-nowrap">
+        <div className="h-6 bg-neutral-200 rounded-full w-20"></div>
+      </td>
+      {/* Progetti */}
+      <td className="px-6 py-4">
+        <div className="space-y-1">
+          <div className="h-4 bg-neutral-200 rounded w-32"></div>
+          <div className="h-4 bg-neutral-200 rounded w-24"></div>
+        </div>
+      </td>
+      {/* Status */}
+      <td className="px-6 py-4 whitespace-nowrap">
+        <div className="h-6 bg-neutral-200 rounded-full w-16"></div>
+      </td>
+      {/* Azioni */}
+      <td className="px-6 py-4 whitespace-nowrap">
+        <div className="h-8 bg-neutral-200 rounded w-8"></div>
+      </td>
+    </tr>
+  )
+
   // Funzione per recuperare gli utenti dalla tua API
   const fetchUsers = async () => {
     try {
@@ -175,12 +215,60 @@ export function UserTable({ onEditUser, selectedProjectId }: UserTableProps) {
     }
   }
 
+  // ✅ Loading state con skeleton invece di spinner
   if (loading) {
     return (
-      <div className="card">
-        <div className="flex items-center justify-center py-8">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-          <span className="ml-2 text-neutral-600">Caricamento utenti...</span>
+      <div className="space-y-4">
+        {/* Filtri Skeleton */}
+        <div className="card">
+          <div className="flex flex-col sm:flex-row gap-4">
+            <div className="flex-1">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-neutral-400 w-4 h-4" />
+                <div className="h-10 bg-neutral-200 rounded animate-pulse pl-10"></div>
+              </div>
+            </div>
+            <div className="sm:w-48">
+              <div className="relative">
+                <Filter className="absolute left-3 top-1/2 transform -translate-y-1/2 text-neutral-400 w-4 h-4" />
+                <div className="h-10 bg-neutral-200 rounded animate-pulse pl-10"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Tabella Skeleton */}
+        <div className="card overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead className="bg-neutral-50 border-b border-neutral-200">
+                <tr>
+                  {['Utente', 'Email', 'Ruolo Sistema', 'Progetti', 'Status', 'Azioni'].map((header, i) => (
+                    <th key={i} className="px-6 py-3 text-left text-xs font-medium text-neutral-500 uppercase tracking-wider">
+                      {header}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody className="bg-white divide-y divide-neutral-200">
+                {[...Array(5)].map((_, i) => (
+                  <UserRowSkeleton key={i} />
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          {/* Footer Skeleton */}
+          <div className="bg-neutral-50 px-6 py-3 border-t border-neutral-200">
+            <div className="flex items-center justify-between">
+              <div className="h-4 bg-neutral-200 rounded animate-pulse w-24"></div>
+              <div className="flex items-center gap-4">
+                <div className="h-4 bg-neutral-200 rounded animate-pulse w-16"></div>
+                <div className="h-4 bg-neutral-200 rounded animate-pulse w-20"></div>
+                <div className="h-4 bg-neutral-200 rounded animate-pulse w-16"></div>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     )
@@ -367,7 +455,7 @@ export function UserTable({ onEditUser, selectedProjectId }: UserTableProps) {
                           {canEditUsers() && (
                             <button
                               onClick={() => onEditUser(user)}
-                              className="text-neutral-600 hover:text-blue-600 transition-colors flex items-center gap-1 p-1 rounded hover:bg-blue-50"
+                              className="text-neutral-600 hover:text-primary transition-colors flex items-center gap-1 p-1 rounded hover:bg-primary-50"
                               title="Modifica utente"
                             >
                               <Edit className="w-4 h-4" />

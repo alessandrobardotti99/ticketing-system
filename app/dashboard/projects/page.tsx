@@ -23,7 +23,11 @@ export default function ProjectsPage() {
   // Hook per verificare i progetti autorizzati
   // Aggiungi un controllo di sicurezza per evitare array undefined
   const safeFilteredProjects = filteredProjects || []
+  console.log('🔍 ProjectsPage: filteredProjects from useProjects:', safeFilteredProjects.length, safeFilteredProjects.map(p => p.name))
+  
   const { authorizedIds, loading: authLoading } = useAuthorizedProjects(safeFilteredProjects)
+  
+  console.log('🎯 ProjectsPage: authorizedIds from hook:', authorizedIds, 'authLoading:', authLoading)
   
   const { canCreateTickets } = usePermissions()
   const [showFilters, setShowFilters] = useState(false)
@@ -33,30 +37,74 @@ export default function ProjectsPage() {
   }
 
   // Filtra i progetti per mostrare solo quelli autorizzati
-  const authorizedProjects = filteredProjects.filter(project => 
+  const authorizedProjects = safeFilteredProjects.filter(project => 
     authorizedIds.includes(project.id)
+  )
+  
+  console.log('🏁 ProjectsPage: Final authorizedProjects to display:', authorizedProjects.length, authorizedProjects.map(p => p.name))
+
+  // Skeleton Component
+  const ProjectSkeleton = () => (
+    <div className="card">
+      <div className="animate-pulse">
+        <div className="flex items-start justify-between mb-4">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 bg-neutral-200 rounded-lg"></div>
+            <div>
+              <div className="h-5 bg-neutral-200 rounded w-32 mb-2"></div>
+              <div className="h-4 bg-neutral-200 rounded w-16"></div>
+            </div>
+          </div>
+        </div>
+        <div className="h-4 bg-neutral-200 rounded w-full mb-2"></div>
+        <div className="h-4 bg-neutral-200 rounded w-3/4 mb-4"></div>
+        <div className="space-y-3">
+          <div className="h-4 bg-neutral-200 rounded w-1/2"></div>
+          <div className="h-2 bg-neutral-200 rounded w-full"></div>
+          <div className="grid grid-cols-3 gap-2">
+            <div className="h-8 bg-neutral-200 rounded"></div>
+            <div className="h-8 bg-neutral-200 rounded"></div>
+            <div className="h-8 bg-neutral-200 rounded"></div>
+          </div>
+        </div>
+      </div>
+    </div>
   )
 
   // Loading state - include anche il caricamento delle autorizzazioni
   if (isLoading || authLoading) {
     return (
-      <div className="space-y-6">
+      <motion.div 
+        className="space-y-6"
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.3 }}
+      >
+        {/* Header Skeleton */}
         <div className="flex justify-between items-center">
           <div>
             <h1 className="text-3xl font-bold">Projects</h1>
             <p className="text-neutral-600 mt-2">Organize your work into projects</p>
           </div>
+          <div className="h-10 bg-neutral-200 rounded animate-pulse w-32"></div>
         </div>
-        
-        <div className="flex items-center justify-center py-12">
-          <div className="flex items-center gap-3">
-            <Loader2 className="w-6 h-6 animate-spin text-primary" />
-            <span className="text-neutral-600">
-              {isLoading ? "Caricamento progetti..." : "Verifica autorizzazioni..."}
-            </span>
+
+        {/* Search Skeleton */}
+        <div className="card">
+          <div className="flex items-center gap-3 mb-4">
+            <div className="w-5 h-5 bg-neutral-200 rounded animate-pulse"></div>
+            <div className="flex-1 h-5 bg-neutral-200 rounded animate-pulse"></div>
+            <div className="h-8 bg-neutral-200 rounded animate-pulse w-20"></div>
           </div>
         </div>
-      </div>
+
+        {/* Projects Grid Skeleton */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {[...Array(6)].map((_, i) => (
+            <ProjectSkeleton key={i} />
+          ))}
+        </div>
+      </motion.div>
     )
   }
 
