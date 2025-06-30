@@ -1,8 +1,8 @@
 "use client"
 
 import type React from "react"
-import { useState } from "react"
-import { useRouter } from "next/navigation"
+import { useState, useEffect } from "react"
+import { useRouter, useSearchParams } from "next/navigation"
 import { User, Lock, MoveLeft } from "lucide-react"
 import { signIn } from "@/server/users"
 import { signInWithGoogle, signInWithGitHub } from "@/lib/auth-client"
@@ -14,6 +14,17 @@ export default function LoginPage() {
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState("")
   const router = useRouter()
+  const searchParams = useSearchParams()
+
+  // Gestisci errori dall'URL
+  useEffect(() => {
+    const urlError = searchParams.get('error')
+    if (urlError === 'account_not_found') {
+      setError("Account non trovato. Devi prima registrarti con questa email.")
+    } else if (urlError === 'signup_disabled') {
+      setError("Registrazione automatica disabilitata. Registrati prima manualmente.")
+    }
+  }, [searchParams])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -123,6 +134,13 @@ export default function LoginPage() {
             {error && (
               <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 text-sm rounded-md">
                 {error}
+                {(error.includes("Account non trovato") || error.includes("Registrazione automatica")) && (
+                  <div className="mt-2">
+                    <a href="/registrazione" className="text-red-800 hover:underline font-medium">
+                      → Vai alla registrazione
+                    </a>
+                  </div>
+                )}
               </div>
             )}
 
@@ -139,6 +157,8 @@ export default function LoginPage() {
                 <span className="bg-white px-2 text-neutral-500">Oppure</span>
               </div>
             </div>
+
+           
 
             {/* Pulsanti Social */}
             <div className="space-y-3">
