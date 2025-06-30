@@ -5,7 +5,7 @@ import { Card } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { ThemeToggle } from "@/components/theme-toggle"
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
-
+import { HeroSection } from "@/components/hero-section"
 import Image from "next/image"
 import {
   Ticket,
@@ -214,7 +214,7 @@ export default function HomePage() {
   return (
     <div className="min-h-screen bg-bgprimary/50">
       {/* Header */}
-      <header className="border-b bg-card/95 backdrop-blur supports-[backdrop-filter]:bg-card/60 sticky top-0 z-50">
+      <header className="border-b bg-white backdrop-blur supports-[backdrop-filter]:bg-card/60 sticky top-0 z-50">
         <div className="container mx-auto px-4 py-4">
           <div className="flex justify-between items-center">
             <div className="flex items-center gap-3">
@@ -268,7 +268,7 @@ export default function HomePage() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6 }}
-          className="text-center max-w-4xl mx-auto"
+          className="text-center max-w-10xl mx-auto"
         >
           <Badge
             variant="secondary"
@@ -276,35 +276,8 @@ export default function HomePage() {
           >
             🎉 100% Gratuito • Nessun Limite • Open Source
           </Badge>
-          <h1 className="text-4xl md:text-6xl font-bold mb-6 bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">
-            Il Sistema di Ticketing Completamente Gratuito
-          </h1>
-          <p className="text-xl text-muted-foreground mb-8 max-w-2xl mx-auto">
-            Gestisci ticket, progetti e team senza limiti. Tutte le funzionalità enterprise, completamente gratis per
-            sempre. Nessun costo nascosto, nessuna scadenza.
-          </p>
-          <div className="flex flex-col sm:flex-row gap-4 justify-center mb-12">
-            {!isLoading && (
-              <>
-                {user ? (
-                  <Button size="lg" asChild className="text-lg px-8">
-                    <Link href="/dashboard">
-                      Vai alla Dashboard <ArrowRight className="ml-2 w-5 h-5" />
-                    </Link>
-                  </Button>
-                ) : (
-                  <Button size="lg" asChild className="text-lg px-8">
-                    <Link href="/login">
-                      Inizia Subito Gratis <ArrowRight className="ml-2 w-5 h-5" />
-                    </Link>
-                  </Button>
-                )}
-              </>
-            )}
-            <Button size="lg" variant="outline" asChild className="text-lg px-8">
-              <Link href="#features">Scopri le Funzionalità</Link>
-            </Button>
-          </div>
+          <HeroSection />
+         
 
           {/* Stats */}
          
