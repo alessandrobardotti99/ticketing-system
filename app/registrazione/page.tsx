@@ -3,7 +3,7 @@
 import type React from "react"
 import { useState } from "react"
 import { useRouter } from "next/navigation"
-import { User, Lock, Mail, UserPlus } from "lucide-react"
+import { User, Lock, Mail, UserPlus, CheckCircle } from "lucide-react"
 import { signUp } from "@/server/users"
 import { signInWithGoogle, signInWithGitHub } from "@/lib/auth-client"
 
@@ -13,10 +13,10 @@ export default function RegisterPage() {
     email: "",
     password: "",
     confirmPassword: "",
-    company: ""
   })
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState("")
+  const [success, setSuccess] = useState(false)
   const router = useRouter()
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -46,7 +46,6 @@ export default function RegisterPage() {
     }
 
     try {
-      // Usa signUp per la registrazione
       const result = await signUp(
         formData.name,
         formData.email,
@@ -54,11 +53,9 @@ export default function RegisterPage() {
       )
 
       if (result.success) {
-        // Reindirizza alla dashboard dopo registrazione riuscita
-        router.push("/dashboard")
+        setSuccess(true)
       } else {
         setError(result.message || "Errore durante la registrazione. Riprova.")
-        console.log(result.message)
       }
     } catch (error) {
       console.error("Errore registrazione:", error)
@@ -104,6 +101,52 @@ export default function RegisterPage() {
     }
     
     setIsLoading(false)
+  }
+
+  // Mostra messaggio di successo
+  if (success) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-bgprimary/50">
+        <div className="w-full max-w-md">
+          <div className="card">
+            <div className="card-header text-center">
+              <div className="flex items-center justify-center mb-4">
+                <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center">
+                  <CheckCircle className="w-8 h-8 text-green-600" />
+                </div>
+              </div>
+              <h1 className="text-2xl font-bold text-green-600">Account Creato!</h1>
+              <p className="text-neutral-600 text-sm mt-2">
+                Ti abbiamo inviato un'email di verifica a{" "}
+                <span className="font-medium">{formData.email}</span>
+              </p>
+              <p className="text-neutral-600 text-sm mt-3">
+                Controlla la tua casella di posta e clicca sul link per verificare il tuo account.
+              </p>
+            </div>
+            
+            <div className="mt-6 text-center">
+              <p className="text-sm text-neutral-600 mb-3">
+                Non hai ricevuto l'email?
+              </p>
+              <button
+                type="button"
+                onClick={() => window.location.reload()}
+                className="text-neutral-800 hover:underline font-medium text-sm"
+              >
+                Riprova la registrazione
+              </button>
+            </div>
+
+            <div className="mt-6 text-center">
+              <a href="/login" className="text-neutral-600 hover:underline text-sm">
+                ← Torna al login
+              </a>
+            </div>
+          </div>
+        </div>
+      </div>
+    )
   }
 
   return (

@@ -91,7 +91,7 @@ export function TicketTable({ tickets }: TicketTableProps) {
     >
       <div className="overflow-x-auto">
         <table className="w-full bg-card">
-          <thead className="bg-muted/50 border-b border-border">
+          <thead className="bg-white border-b border-border">
             <tr>
               <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
                 Titolo

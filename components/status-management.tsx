@@ -679,7 +679,7 @@ export function StatusManagement() {
 
       <motion.button
         onClick={() => setIsExpanded(!isExpanded)}
-        className="btn-secondary flex items-center gap-2 text-sm"
+        className="btn-secondary bg-white flex items-center gap-2 text-sm"
         whileHover={{ scale: 1.01 }}
         whileTap={{ scale: 0.99 }}
         transition={{ duration: 0.1 }}

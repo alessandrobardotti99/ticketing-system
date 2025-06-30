@@ -258,7 +258,7 @@ export function CreateStatusModal({ onClose, projectId }: CreateStatusModalProps
             <button 
               type="submit" 
               disabled={loading || !formData.label.trim()}
-              className="flex-1 bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+              className="flex-1 bg-primary text-white px-4 py-2 rounded-md hover:bg-primary disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
             >
               {loading && <Loader2 className="w-4 h-4 animate-spin" />}
               {loading ? "Creazione..." : "Crea Status"}

@@ -42,6 +42,7 @@
     "@radix-ui/react-toggle": "1.1.1",
     "@radix-ui/react-toggle-group": "1.1.1",
     "@radix-ui/react-tooltip": "1.1.6",
+    "@react-email/components": "0.1.1",
     "autoprefixer": "^10.4.20",
     "better-auth": "^1.2.10",
     "class-variance-authority": "^0.7.1",
@@ -75,6 +76,7 @@
     "@types/react-dom": "^19",
     "drizzle-kit": "^0.31.2",
     "postcss": "^8.5",
+    "react-email": "4.0.17",
     "tailwindcss": "^3.4.17",
     "typescript": "^5"
   }
