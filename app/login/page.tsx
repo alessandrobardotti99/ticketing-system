@@ -7,6 +7,7 @@ import { User, Lock, MoveLeft } from "lucide-react"
 import { signIn } from "@/server/users"
 import { signInWithGoogle, signInWithGitHub } from "@/lib/auth-client"
 import Image from "next/image"
+import Link from "next/link"
 
 export default function LoginPage() {
   const [email, setEmail] = useState("")
@@ -88,9 +89,11 @@ export default function LoginPage() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-bgprimary/50 relative">
       <div className="absolute top-4 left-4">
+        <Link href={'/'}>
         <button className="btn-primary">  
           <MoveLeft />
         </button>
+        </Link>
       </div>
       <div className="w-full max-w-md">
         <div className="card">

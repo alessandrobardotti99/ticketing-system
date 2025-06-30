@@ -3,9 +3,11 @@
 import type React from "react"
 import { useState } from "react"
 import { useRouter } from "next/navigation"
-import { User, Lock, Mail, UserPlus, CheckCircle } from "lucide-react"
+import { User, Lock, Mail, CheckCircle, MoveLeft } from "lucide-react"
+import Image from "next/image"
 import { signUp } from "@/server/users"
 import { signInWithGoogle, signInWithGitHub } from "@/lib/auth-client"
+import Link from "next/link"
 
 export default function RegisterPage() {
   const [formData, setFormData] = useState({
@@ -150,17 +152,20 @@ export default function RegisterPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-bgprimary/50">
+    <div className="min-h-screen flex items-center justify-center bg-bgprimary/50 relative">
+        <div className="absolute top-4 left-4">
+        <Link href={'/'}>
+        <button className="btn-primary">  
+          <MoveLeft />
+        </button>
+        </Link>
+      </div>
       <div className="w-full max-w-md">
         <div className="card">
           <div className="card-header">
-            <div className="flex items-center justify-center mb-2">
-              <div className="w-12 h-12 bg-neutral-800 flex items-center justify-center">
-                <UserPlus className="w-6 h-6 text-white" />
-              </div>
-            </div>
-            <h1 className="text-2xl font-bold text-center">Crea Account</h1>
-            <p className="text-neutral-600 text-center text-sm">Unisciti a Index</p>
+            <div className="flex items-center justify-center">
+                           <Image src={"/logo.svg"} alt="logo" width={150} height={150}></Image>
+                       </div>
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-6">
